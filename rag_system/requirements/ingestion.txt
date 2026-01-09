@@ -1,0 +1,9 @@
+pyyaml
+transformers
+torch
+sentence-transformers
+sentencepiece
+langchain
+langchain-community
+chromadb
+tiktoken

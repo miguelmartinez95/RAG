@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-model-config
+data:
+  model_config.yaml: |
+    mlflow_uri: "http://mlflow-server:5000"
+    output_dir: "s3://rag-models-bucket/models"
+
+    evaluator_model:
+      label: "rag_evaluator"
+      hf_id: "roberta-large-mnli"
+      local_path: "/models/evaluator"
+      type: "evaluator"
+    
+    reranker_model:
+      label: "reranker_model"
+      hf_id: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+      local_path: "/models/reranker"
+      type: "cross-encoder"
+    
+    embedding_model:
+      label: "vector_embedding"
+      hf_id: "sentence-transformers/all-MiniLM-L6-v2"
+      local_path: "/models/embeddings"
+      type: "embedding"
+    
+    # CAUSAL GENERATION MODEL
+    generation_model:
+      label: "causal_gen"
+      hf_id: "distilgpt2"  # or any causal LM you want
+      local_path: "/models/generation"
+      type: "causal"
+

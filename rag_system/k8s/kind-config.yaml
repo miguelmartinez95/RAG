@@ -1,0 +1,12 @@
+# kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 32080  # NodePort in cluster
+    hostPort: 32080       # Windows host
+    protocol: TCP
+  - containerPort: 32443
+    hostPort: 32443
+    protocol: TCP

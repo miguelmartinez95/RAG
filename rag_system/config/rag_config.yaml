@@ -1,0 +1,4 @@
+eval_data_path: "rag/data/rag_eval.jsonl"
+document_path: "rag/data"
+vector_db_path: "/vector_db"
+

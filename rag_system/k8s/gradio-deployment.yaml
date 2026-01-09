@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-gradio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-gradio
+  template:
+    metadata:
+      labels:
+        app: rag-gradio
+    spec:
+      containers:
+        - name: gradio
+          image: rag-gradio:local    # Use local image tag or built image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7860
+          env:
+            - name: RAG_API_URL
+              value: "http://rag-bot:80/rag"  # Points to local rag-api service

@@ -1,0 +1,157 @@
+name: RAG APP
+
+on:
+  push:
+    branches: ['main']
+  pull-request:
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REPOSITORY: rag-system
+  IMG_TAG: ${{ github.sha }}
+  EKS_CLUSTER: rag-cluster
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+
+      - name: Unit Tests
+        run: |
+          pytest test/unit
+
+      - name: Integration Tests
+        run: |
+          pytest test/integration
+          
+
+  build-models:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build models
+        run: |
+          python models/download_models.py
+
+      - name: Upload Model Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-models
+          path: models/hf/
+
+  build-image:
+    needs: build-models
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Download Model Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: llm-models
+          path: models/hf/
+
+      - name: Configure AWS Credential (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      - name: Docker Build Image
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+          
+
+      - name: Tag and Push Image
+        run: |
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG \
+          123456789012.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          docker push 123456789012.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy:
+    needs: build-image
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      content: read
+
+    steps:
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configuration AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::....
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+          --name $EKS_CLUSTER \
+          --region $AWS_REGION
+
+      - name: Update image data in k8
+        run: |
+          sed -i "s|IMAGE_TAG|${IMAGE_TAG}|g" k8/deployment.yaml
+
+      - name: Deploy to kubernetes
+        run: |
+          kubectl apply -f k8/configmap.yaml
+          kubectl apply -f k8/persistvolumeclaim.yaml
+          kubectl apply -f k8/deployments.yaml
+          kubectl apply -f k8/service.yaml
+          kubectl apply -f k8/horizontalscaling.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/rag-system-bot
+          
+
+  health-check:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Health Check
+        run: |
+          curl --fail https://rag-bot.mycompany.internal/health

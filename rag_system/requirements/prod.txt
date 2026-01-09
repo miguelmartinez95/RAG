@@ -1,0 +1,57 @@
+# -----------------------------
+# Web API
+# -----------------------------
+fastapi
+uvicorn
+
+# -----------------------------
+# Core utilities
+# -----------------------------
+pyyaml
+pydantic
+
+# -----------------------------
+# ML / Deep Learning
+# -----------------------------
+torch
+transformers
+sentence-transformers
+huggingface-hub
+
+# -----------------------------
+# LangChain ecosystem
+# -----------------------------
+langchain==0.3.27
+langchain-community
+langgraph
+langchain-huggingface
+langchain-chroma
+
+# -----------------------------
+# Vector database
+# -----------------------------
+chromadb
+
+# -----------------------------
+# MLflow & experiment tracking
+# -----------------------------
+mlflow
+
+# -----------------------------
+# Embeddings & tokenization
+# -----------------------------
+tiktoken
+
+# -----------------------------
+# Scientific / metrics
+# -----------------------------
+numpy
+
+# -----------------------------
+# Optional but REQUIRED by MLflow in practice
+# (MLflow pulls these transitively, but pinning avoids CI/runtime issues)
+# -----------------------------
+cloudpickle
+
+gradio
+requests

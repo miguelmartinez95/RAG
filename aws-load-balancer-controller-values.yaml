@@ -1,0 +1,4 @@
+clusterName: "rag-cluster"
+region: "eu-west-3"
+vpcId: "vpc-0e2837cb6b03a9c5b"
+

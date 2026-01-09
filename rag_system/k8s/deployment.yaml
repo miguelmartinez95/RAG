@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-api
+  template:
+    metadata:
+      labels:
+        app: rag-api
+    spec:
+      initContainers:
+        - name: hf-download
+          image: rag-backend:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HF_HOME
+              value: /models/hf
+            - name: HF_HUB_CACHE
+              value: /models/hf/hub
+            - name: TRANSFORMERS_CACHE
+              value: /models/hf/transformers
+            - name: SENTENCE_TRANSFORMERS_HOME
+              value: /models/hf/sentence_transformers
+            - name: HF_HUB_DISABLE_PROGRESS_BARS
+              value: "1"
+          command:
+            - python
+            - -u
+            - /app/rag/models/download_models.py
+          args:
+            [
+              "--config", "/app/configmap/model_config.yaml",
+              "--meta", "/models/.model_meta.json",       # empty since no S3
+              "--pvc_base", "/models"
+            ]
+          volumeMounts:
+            - name: models-volume
+              mountPath: /models
+            - name: model-config
+              mountPath: /app/configmap
+
+        - name: copy-docs
+          image: rag-backend:local
+          command: [ "sh", "-c", "cp /app/rag/data/documents/*.txt /data/documents/" ]
+          volumeMounts:
+            - name: documents-volume
+              mountPath: /data/documents
+
+        - name: ingest-docs
+          image: rag-backend:local
+          imagePullPolicy: IfNotPresent
+          command: [ "python", "/app/rag/ingestion/ingest_documents.py" ]
+          volumeMounts:
+            - name: models-volume
+              mountPath: /models
+            - name: vector-db-volume
+              mountPath: /vector_db
+            - name: documents-volume
+              mountPath: /data/documents
+
+      containers:
+        - name: rag-api
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "3Gi"
+          image: rag-backend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 10   # wait a bit before first check
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          env:
+            - name: MODEL_CONFIG_PATH
+              value: /app/configmap/model_config.yaml
+          volumeMounts:
+            - name: models-volume
+              mountPath: /models
+            - name: vector-db-volume
+              mountPath: /vector_db
+            - name: documents-volume
+              mountPath: /data/documents
+            - name: model-config
+              mountPath: /app/configmap
+
+      volumes:
+        - name: models-volume
+          persistentVolumeClaim:
+            claimName: rag-models-pvc
+
+        - name: vector-db-volume
+          persistentVolumeClaim:
+            claimName: rag-vector-db-pvc
+
+        - name: documents-volume
+          persistentVolumeClaim:
+            claimName: rag-documents-pvc
+
+        - name: model-config
+          configMap:
+            name: rag-model-config

@@ -1,0 +1,6 @@
+embedding_model:
+  label: "vector_embedding"
+  hf_id: "sentence-transformers/all-MiniLM-L6-v2"
+  local_path: "/models/embeddings"
+  type: "embedding"
+

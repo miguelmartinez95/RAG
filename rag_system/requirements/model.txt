@@ -1,0 +1,19 @@
+# MLflow & config
+mlflow
+pyyaml
+numpy
+
+# HuggingFace models & embeddings
+transformers
+torch
+sentence-transformers
+sentencepiece
+huggingface-hub
+
+# LangChain / Chroma
+langchain
+langchain-community
+chromadb
+
+# Optional for S3 artifacts
+boto3

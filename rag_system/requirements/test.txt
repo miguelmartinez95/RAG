@@ -1,0 +1,8 @@
+pydantic
+pyyaml
+transformers
+langchain
+langgraph
+chromadb
+mlflow
+pytest

@@ -1,0 +1,126 @@
+name: RAG App Pipeline
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - models/**
+      - config/model_config.yaml
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REPOSITORY: rag-bot
+  IMAGE_TAG: ${{ github.sha }}
+  EKS_CLUSTER: rag-cluster
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Python setUp
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements/test.txt
+
+      - name: Run unit tests
+        run: pytest -m "not integration"
+
+      - name: Run integration tests
+        run: pytest -m integration
+
+  build-image:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      content: read
+
+    steps:
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credential@v4
+        with:
+          role-to-assume: arn:aws:iam::515966510087:role/github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: |
+          docker build -t $ECR_REPOSITORY:${IMAGE_TAG} .
+          docker tag $ECR_REPOSITORY:${IMAGE_TAG} \
+            515966510087.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}
+          docker tag $ECR_REPOSITORY:${IMAGE_TAG} \
+            515966510087.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest
+
+      - name: Push image
+        run: |
+          docker push 515966510087.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}
+          docker push 515966510087.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest
+          
+
+  deploy-app:
+    needs: build-image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      content: read
+
+    steps:
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::515966510087:role/github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig
+        run: |
+          aws ecr update-kubeconfig \
+          --name $EKS_CLUSTER
+          --region $AWS_REGION
+
+      - name: Deploy new image
+        run: |
+          kubectl set image deployment/rag-bot \
+          rag-bot=515966510087.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+          kubectl rollout status deployment/rag-bot
+
+  health-check:
+    needs: deploy-app
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Liveness Check
+        run: |
+          curl --fail https://rag-bot.mycompany.internal/health/live
+
+      - name: Readiness Check
+        run: |
+          curl --fail https://rag-bot.mycompany.internal/health/ready
+        
+    
+    
+    
+    
+    
+    
+    
+    

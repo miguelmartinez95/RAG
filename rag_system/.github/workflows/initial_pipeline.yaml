@@ -1,0 +1,130 @@
+name: RAG App Pipeline
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REPOSITORY: rag-bot
+  IMAGE_TAG: ${{ github.sha }}
+  EKS_CLUSTER: rag-cluster
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Python setUp
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements/test.txt
+
+      - name: Run unit tests
+        run: pytest -m "not integration"
+
+      - name: Run integration tests
+        run: pytest -m integration
+
+  build-image:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      content: read
+
+    steps:
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credential@v4
+        with:
+          role-to-assume: arn:aws:iam::515966510087:role/github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+
+      - name: Tag and Push Image
+        run: |
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG \
+          XXXXXX.dkr.ecr.${AWS_REGION}.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          
+          docker push XXXXXX.dkr.ecr.${AWS_REGION}.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+          
+
+  deploy-app:
+    needs: build-image
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      content: read
+
+    steps:
+
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::515966510087:role/github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig
+        run: |
+          aws ecr update-kubeconfig \
+          --name $EKS_CLUSTER
+          --region $AWS_REGION
+
+      - name: Inject IMAGE_TAG
+        run: |
+          sed -i "s|IMAGE_TAG|$IMAGE_TAG|g" k8s/deployment.yaml
+
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -f k8s/configMap.yaml
+          kubectl apply -f k8s/persistentVolumeClaim.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/hpa.yaml
+          kubectl apply -f k8s/ingress.yaml
+
+      - name: Wait for Rollout
+        run: |
+          kubectl rollout status deployment/rag-bot
+
+  health-check:
+    needs: deploy-app
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Liveness Check
+        run: |
+          curl --fail https://rag-bot.mycompany.internal/health/live
+
+      - name: Readiness Check
+        run: |
+          curl --fail https://rag-bot.mycompany.internal/health/ready
+        
+    
+    
+    
+    
+    
+    
+    
+    
