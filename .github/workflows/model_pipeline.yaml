@@ -29,9 +29,16 @@ jobs:
           pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
 
-      - name: Run MLflow evaluation
+      - name: Prepare CI vector DB
+        if: ${{ env.CI == 'true' }}
+        run: |
+          mkdir -p tests/tmp_vector_db
+          cp rag/data/documents/*.txt tests/tmp_vector_db/ || echo "tmp_vector_db already populated"
+
+      - name: Run RAG evaluation
         env:
           MODEL_CONFIG_PATH: config/model_config.yaml
+          VECTOR_DB_PATH: tests/tmp_vector_db  # <- make retriever pick up CI DB
         run: python -m rag.models.build_and_evaluate
 
   wait_for_approval:

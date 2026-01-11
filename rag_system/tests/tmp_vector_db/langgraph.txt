@@ -1,0 +1,3 @@
+LangGraph is a framework for building stateful, multi-step LLM applications.
+It extends LangChain with graph-based execution.
+LangGraph allows branching, loops, retries, and human-in-the-loop workflows.

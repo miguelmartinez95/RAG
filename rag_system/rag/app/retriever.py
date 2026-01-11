@@ -3,24 +3,19 @@ import yaml
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-
+import os
 
 TOP_K = 10
 TOP_N = 3
 
-
-# ---- Config ----
-with open("config/rag_config.yaml", "r") as f:
-    config = yaml.safe_load(f)
+# ---- Detect CI environment ----
+IS_CI = os.getenv("CI", "false") == "true"
 
 RERANKER_OUTPUT_DIR = "/models/reranker_model/cross-encoder/ms-marco-MiniLM-L-6-v2"
-VECTOR_DB_PATH = "/vector_db"
+VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "tests/tmp_vector_db" if IS_CI else "/vector_db")
 MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDINGS_OUTPUT_DIR = f"/models/embeddings/sentence-transformers/{MODEL_NAME}"
 
-# ---- Ensure vector DB exists locally ----
-if not Path(VECTOR_DB_PATH).exists() or not any(Path(VECTOR_DB_PATH).glob("*")):
-    raise RuntimeError(f"Vector DB not found at {VECTOR_DB_PATH}. Run the local build_index script first.")
 
 # ---- Embeddings and Chroma retriever ----
 embeddings = HuggingFaceEmbeddings(
@@ -28,11 +23,56 @@ embeddings = HuggingFaceEmbeddings(
     encode_kwargs={"normalize_embeddings": True}
 )
 
-db = Chroma(
-    persist_directory=VECTOR_DB_PATH,
-    embedding_function=embeddings,
-    collection_name="default"
-)
+if IS_CI:
+    # Build mini CI DB if missing
+    if not VECTOR_DB_PATH.exists() or not any(VECTOR_DB_PATH.glob("*")):
+        VECTOR_DB_PATH.mkdir(parents=True, exist_ok=True)
+        print("Building CI mini vector DB...")
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        from langchain.schema import Document
+
+        txt_files = list(VECTOR_DB_PATH.glob("*.txt"))
+        if not txt_files:
+            raise RuntimeError("No test documents found in tmp_vector_db for CI")
+
+        documents = [
+            Document(page_content=f.read_text(encoding="utf-8"), metadata={"source": f.name})
+            for f in txt_files
+        ]
+
+        splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+            encoding_name="cl100k_base",
+            chunk_size=20,
+            chunk_overlap=2,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        )
+        chunks = splitter.split_documents(documents)
+
+        db = Chroma.from_documents(
+            documents=chunks,
+            embedding=embeddings,
+            persist_directory=str(VECTOR_DB_PATH),
+            collection_name="default",
+        )
+    else:
+        # Use persisted mini DB
+        db = Chroma(
+            persist_directory=str(VECTOR_DB_PATH),
+            embedding_function=embeddings,
+            collection_name="default",
+        )
+else:
+
+# ---- Ensure vector DB exists for non-CI runs ----
+    if not Path(VECTOR_DB_PATH).exists() or not any(Path(VECTOR_DB_PATH).glob("*")):
+        raise RuntimeError(f"Vector DB not found at {VECTOR_DB_PATH}. Run the local build_index script first.")
+
+
+    db = Chroma(
+        persist_directory=VECTOR_DB_PATH,
+        embedding_function=embeddings,
+        collection_name="default"
+    )
 
 #base_retriever = db.as_retriever(
 #    search_type="similarity",
