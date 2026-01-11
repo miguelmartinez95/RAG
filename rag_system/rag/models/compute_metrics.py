@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import json
-import yaml
 import statistics
 from .graph import generate_graph
 from .retriever import retrieve_data, db, reranker, TOP_K, TOP_N
