@@ -5,7 +5,6 @@ on:
   push:
     paths:
       - k8s/configMap.yaml
-      - models/**
 
 jobs:
 
@@ -26,6 +25,8 @@ jobs:
 
 
       - name: Run MLflow evaluation
+        env:
+          MODEL_CONFIG_PATH: config/model_config.yaml
         run: python /app/rag/models/build_and_evaluate.py
 
   wait_for_approval:
@@ -54,7 +55,35 @@ jobs:
           pip install mlflow pyyaml
 
       - name: Promote model
+        env:
+          MODEL_CONFIG_PATH: config/model_config.yaml
         run: python /app/rag/models/promote_production.py
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          kubectl config set-cluster rag-cluster \
+            --server=${{ secrets.KUBE_API_SERVER }} \
+            --insecure-skip-tls-verify=true
+          kubectl config set-credentials github-actions \
+            --token=${{ secrets.KUBE_TOKEN }}
+          kubectl config set-context default \
+            --cluster=rag-cluster \
+            --user=github-actions
+          kubectl config use-context default
+
+      - name: Generate configMap
+        run: |
+          kubectl create configmap rag-model-config \
+            --from-file=model_config.yaml=config/model_config.yaml \
+            --dry-run=client -o yaml > configMap.yaml
+
+      - name: Apply ConfigMap
+        run: kubectl apply -f configMap.yaml
 
       - name: Redeploy API
         run: kubectl rollout restart deployment/rag-api

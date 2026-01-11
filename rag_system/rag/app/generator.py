@@ -5,7 +5,7 @@ import yaml
 import os
 
 # ConfigMap-mounted path
-CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/config/model_config.yaml")
+CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
 
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)

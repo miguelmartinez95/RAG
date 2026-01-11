@@ -7,18 +7,16 @@ from .graph import generate_graph
 from .retriever import retrieve_data, db, reranker, TOP_K, TOP_N
 from langchain.embeddings import HuggingFaceEmbeddings
 
-with open("config/rag_config.yaml", "r") as f:
-    config = yaml.safe_load(f)
-
 EVAL_DATA_PATH = "/app/rag/data/rag_eval.jsonl"
-EMBEDDINGS_OUTPUT_DIR = f"/models/embeddings/sentence-transformers/{MODEL_NAME}"
+MODEL_NAME = "all-MiniLM-L6-v2"
+EMBEDDINGS_MODEL_PATH = f"/models/embeddings/sentence-transformers/{MODEL_NAME}"
 
 
 def compute_metrics():
     graph = generate_graph()
 
     embedder = HuggingFaceEmbeddings(
-        model_name=EMBEDDINGS_OUTPUT_DIR,
+        model_name=EMBEDDINGS_MODEL_PATH,
         encode_kwargs={"normalize_embeddings": True}
     )
 

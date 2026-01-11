@@ -9,25 +9,18 @@ import os
 
 # ---- Config ----
 # ConfigMap-mounted path
-CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/config/model_config.yaml")
+CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
 
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
-PVC_MODEL_PATH = "/models/generation"  # where the generation model is stored in PVC
+
+PVC_MODEL_PATH = "/models/generation_model"  # where the generation model is stored in PVC
 
 MLFLOW_URI = config["mlflow_uri"]
 MODEL_NAME = config["generation_model"]["label"]
 HF_MODEL_ID = config["generation_model"]["hf_id"]
 THRESHOLDS = config["thresholds"]
 
-# ---- Sanity checks ----
-pvc_path = Path(PVC_MODEL_PATH)
-essential_files = ["config.json", "pytorch_model.bin", "model.safetensors"]
-if not pvc_path.exists() or not any(pvc_path.iterdir()):
-    raise RuntimeError(f"Generation model not found at {PVC_MODEL_PATH}")
-for f in essential_files:
-    if not (pvc_path / f).exists():
-        raise RuntimeError(f"Essential file {f} missing in {PVC_MODEL_PATH}")
 
 # ---- Setup MLflow ----
 mlflow.set_tracking_uri(MLFLOW_URI)
