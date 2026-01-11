@@ -26,7 +26,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain langchain-community langchain-huggingface langgraph chromadb
+          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
 
       - name: Run MLflow evaluation
