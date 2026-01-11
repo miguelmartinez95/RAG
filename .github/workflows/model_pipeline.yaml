@@ -32,7 +32,7 @@ jobs:
       - name: Run MLflow evaluation
         env:
           MODEL_CONFIG_PATH: config/model_config.yaml
-        run: python /app/rag/models/build_and_evaluate.py
+        run: python /rag/models/build_and_evaluate.py
 
   wait_for_approval:
     needs: evaluate_model
