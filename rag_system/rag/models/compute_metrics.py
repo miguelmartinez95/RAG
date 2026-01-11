@@ -2,8 +2,8 @@ import numpy as np
 import time
 import json
 import statistics
-from .graph import generate_graph
-from .retriever import retrieve_data, db, reranker, TOP_K, TOP_N
+from rag.app.graph import generate_graph
+from rag.app.retriever import retrieve_data, db, reranker, TOP_K, TOP_N
 from langchain.embeddings import HuggingFaceEmbeddings
 
 EVAL_DATA_PATH = "/app/rag/data/rag_eval.jsonl"
