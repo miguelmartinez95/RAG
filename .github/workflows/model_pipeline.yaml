@@ -32,7 +32,7 @@ jobs:
       - name: Run MLflow evaluation
         env:
           MODEL_CONFIG_PATH: config/model_config.yaml
-        run: python /rag/models/build_and_evaluate.py
+        run: python rag/models/build_and_evaluate.py
 
   wait_for_approval:
     needs: evaluate_model
@@ -67,7 +67,7 @@ jobs:
       - name: Promote model
         env:
           MODEL_CONFIG_PATH: config/model_config.yaml
-        run: python /app/rag/models/promote_production.py
+        run: python rag/models/promote_production.py
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
