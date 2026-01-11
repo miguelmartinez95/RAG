@@ -4,12 +4,17 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - k8s/configMap.yaml
+      - rag_system/k8s/configMap.yaml
 
 jobs:
 
   evaluate_model:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: rag_system
+
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -41,6 +46,11 @@ jobs:
   promote_and_deploy:
     needs: wait_for_approval
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: rag_system
+
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
