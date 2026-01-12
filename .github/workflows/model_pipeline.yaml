@@ -8,8 +8,8 @@ on:
 
 env:
   CI: true
-  CI_BASE: rag_system/tests/ci_models
-  VECTOR_DB_PATH: rag_system/tests/tmp_vector_db
+  CI_BASE: rag_system\tests\ci_models
+  VECTOR_DB_PATH: rag_system\tests\tmp_vector_db
 
 jobs:
 
@@ -34,48 +34,54 @@ jobs:
           pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
       - name: Ensure CI models exist
+        shell: pwsh
         run: |
-          mkdir -p ${{ env.CI_BASE }}
-          if [ -z "$(ls -A ${{ env.CI_BASE }})" ]; then
-            echo "CI models folder empty – downloading all models..."
-            python -m rag.models.download_models \
-              --config config/model_config.yaml \
-              --meta tests/ci_models_meta.json \
-              --pvc_base ${{ env.CI_BASE }}
-          else
-            echo "✅ CI models already exist – skipping download"
-          fi
+          New-Item -ItemType Directory -Force -Path $env:CI_BASE
+          if (-not (Get-ChildItem -Path $env:CI_BASE -Force)) {
+            Write-Host "CI models folder empty – downloading all models..."
+            python -m rag.models.download_models `
+              --config config\model_config.yaml `
+              --meta tests\ci_models_meta.json `
+              --pvc_base $env:CI_BASE
+          } else {
+            Write-Host "✅ CI models already exist – skipping download"
+          }
 
       - name: Ensure CI vector DB
+        shell: pwsh
         run: |
-          mkdir -p ${{ env.VECTOR_DB_PATH }}
-          if ls ${{ env.VECTOR_DB_PATH }}/*.sqlite3 1> /dev/null 2>&1 || ls ${{ env.VECTOR_DB_PATH }}/*.parquet 1> /dev/null 2>&1; then
-            echo "✅ CI vector DB already exists – skipping build"
-          else
-            echo "⚠️ CI vector DB missing – building..."
-            # Pass embedding model path to the CI vector DB builder
-            EMB_PATH="${{ env.CI_BASE }}/embeddings/all-MiniLM-L6-v2"
+          New-Item -ItemType Directory -Force -Path $env:VECTOR_DB_PATH
+          $dbExists = (Get-ChildItem -Path $env:VECTOR_DB_PATH -Include *.sqlite3, *.parquet -Force -ErrorAction SilentlyContinue)
+          if ($dbExists) {
+            Write-Host "✅ CI vector DB already exists – skipping build"
+          } else {
+            Write-Host "⚠️ CI vector DB missing – building..."
+            $env:EMBED_PATH = Join-Path $env:CI_BASE "embeddings\all-MiniLM-L6-v2"
             python -m rag.models.build_ci_vector_db
+          }
 
       - name: Prepare CI vector DB
         if: ${{ env.CI == 'true' }}
+        shell: pwsh
         run: |
-          mkdir -p tests/tmp_vector_db
-          cp rag/data/documents/*.txt tests/tmp_vector_db/ || echo "tmp_vector_db already populated"
+          New-Item -ItemType Directory -Force -Path tests\tmp_vector_db
+          Copy-Item -Path rag\data\documents\* -Destination tests\tmp_vector_db -Force
 
       - name: Run RAG evaluation
         env:
-          MODEL_CONFIG_PATH: config/model_config.yaml
+          MODEL_CONFIG_PATH: config\model_config.yaml
+        shell: pwsh
         run: python -m rag.models.build_and_evaluate
 
   wait_for_approval:
     needs: evaluate_model
     runs-on: [self-hosted, Windows, X64]
     environment:
-      name: production  # <-- protected environment requires approval
+      name: production
     steps:
       - name: Manual approval step
-        run: echo "Check MLflow metrics, then approve to continue."
+        shell: pwsh
+        run: Write-Host "Check MLflow metrics, then approve to continue."
 
   promote_and_deploy:
     needs: wait_for_approval
@@ -90,17 +96,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Python SetUp
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install Dependencies
-        run: |
-          pip install mlflow pyyaml
+        shell: pwsh
+        run: pip install mlflow pyyaml
 
       - name: Promote model
         env:
-          MODEL_CONFIG_PATH: config/model_config.yaml
+          MODEL_CONFIG_PATH: config\model_config.yaml
+        shell: pwsh
         run: python -m rag.models.promote_production
 
       - name: Set up kubectl
@@ -109,25 +116,29 @@ jobs:
           version: 'latest'
 
       - name: Configure kubeconfig
+        shell: pwsh
         run: |
-          kubectl config set-cluster rag-cluster \
-            --server=${{ secrets.KUBE_API_SERVER }} \
+          kubectl config set-cluster rag-cluster `
+            --server=${{ secrets.KUBE_API_SERVER }} `
             --insecure-skip-tls-verify=true
-          kubectl config set-credentials github-actions \
+          kubectl config set-credentials github-actions `
             --token=${{ secrets.KUBE_TOKEN }}
-          kubectl config set-context default \
-            --cluster=rag-cluster \
+          kubectl config set-context default `
+            --cluster=rag-cluster `
             --user=github-actions
           kubectl config use-context default
 
       - name: Generate configMap
+        shell: pwsh
         run: |
-          kubectl create configmap rag-model-config \
-            --from-file=model_config.yaml=config/model_config.yaml \
+          kubectl create configmap rag-model-config `
+            --from-file=model_config.yaml=config\model_config.yaml `
             --dry-run=client -o yaml > configMap.yaml
 
       - name: Apply ConfigMap
+        shell: pwsh
         run: kubectl apply -f configMap.yaml
 
       - name: Redeploy API
+        shell: pwsh
         run: kubectl rollout restart deployment/rag-api
