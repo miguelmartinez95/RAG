@@ -44,6 +44,7 @@ jobs:
               --pvc_base ${{ env.CI_BASE }}
           else
             echo "✅ CI models already exist – skipping download"
+          fi
 
       - name: Ensure CI vector DB
         run: |
