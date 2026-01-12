@@ -20,10 +20,10 @@ def main():
 
     # If already populated, skip
     if any(p.suffix in {".sqlite3", ".parquet"} for p in VECTOR_DB_PATH.iterdir()):
-        print("✅ CI vector DB already exists – skipping build")
+        print("CI vector DB already exists – skipping build")
         return
 
-    print("⚠️ Building CI vector DB...")
+    print("Building CI vector DB...")
 
     if not Path(EMBEDDINGS_MODEL_PATH).exists():
         raise FileNotFoundError(
@@ -63,7 +63,7 @@ def main():
         collection_name="default",
     )
 
-    print(f"✅ CI vector DB built with {len(chunks)} chunks")
+    print(f"CI vector DB built with {len(chunks)} chunks")
 
 
 if __name__ == "__main__":
