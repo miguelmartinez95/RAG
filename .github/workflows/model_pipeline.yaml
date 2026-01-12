@@ -27,14 +27,14 @@ jobs:
       - name: Verify Python
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
+          set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
 
       - name: Install Python Dependencies
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
-          pip install --upgrade pip
-          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
+          set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
+          python -m pip install --upgrade pip
+          python -m pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
       - name: Ensure CI Models
         shell: cmd
@@ -86,16 +86,16 @@ jobs:
       - name: Verify Python
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
+          set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
           python --version
-          pip --version
+          python -m pip --version
 
       - name: Install Minimal Dependencies
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
-          pip install --upgrade pip
-          pip install mlflow pyyaml
+          set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
+          python -m pip install --upgrade pip
+          python -m pip install mlflow pyyaml
 
       - name: Promote Model
         shell: cmd
