@@ -24,19 +24,21 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Ensure Python 3.12 in PATH
-        shell: pwsh
+      - name: Use installed Python 3.12
+        shell: powershell
         run: |
           $env:PATH = "C:\Users\migue\AppData\Local\Programs\Python\Python312;$env:PATH"
           python --version
           pip --version
 
       - name: Install Dependencies
+        shell: powershell
         run: |
-          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
+          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers `
+            langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
       - name: Ensure CI models exist
-        shell: pwsh
+        shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path $env:CI_BASE
           if (-not (Get-ChildItem -Path $env:CI_BASE -Force)) {
@@ -50,7 +52,7 @@ jobs:
           }
 
       - name: Ensure CI vector DB
-        shell: pwsh
+        shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path $env:VECTOR_DB_PATH
           $dbExists = (Get-ChildItem -Path $env:VECTOR_DB_PATH -Include *.sqlite3, *.parquet -Force -ErrorAction SilentlyContinue)
@@ -64,7 +66,7 @@ jobs:
 
       - name: Prepare CI vector DB
         if: ${{ env.CI == 'true' }}
-        shell: pwsh
+        shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path tests\tmp_vector_db
           Copy-Item -Path rag\data\documents\* -Destination tests\tmp_vector_db -Force
@@ -72,7 +74,7 @@ jobs:
       - name: Run RAG evaluation
         env:
           MODEL_CONFIG_PATH: config\model_config.yaml
-        shell: pwsh
+        shell: powershell
         run: python -m rag.models.build_and_evaluate
 
   wait_for_approval:
@@ -82,7 +84,7 @@ jobs:
       name: production
     steps:
       - name: Manual approval step
-        shell: pwsh
+        shell: powershell
         run: Write-Host "Check MLflow metrics, then approve to continue."
 
   promote_and_deploy:
@@ -97,21 +99,21 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Ensure Python 3.12 in PATH
-        shell: pwsh
+      - name: Use installed Python 3.12
+        shell: powershell
         run: |
           $env:PATH = "C:\Users\migue\AppData\Local\Programs\Python\Python312;$env:PATH"
           python --version
           pip --version
 
       - name: Install Dependencies
-        shell: pwsh
+        shell: powershell
         run: pip install mlflow pyyaml
 
       - name: Promote model
         env:
           MODEL_CONFIG_PATH: config\model_config.yaml
-        shell: pwsh
+        shell: powershell
         run: python -m rag.models.promote_production
 
       - name: Set up kubectl
@@ -120,7 +122,7 @@ jobs:
           version: 'latest'
 
       - name: Configure kubeconfig
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl config set-cluster rag-cluster `
             --server=${{ secrets.KUBE_API_SERVER }} `
@@ -133,16 +135,16 @@ jobs:
           kubectl config use-context default
 
       - name: Generate configMap
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl create configmap rag-model-config `
             --from-file=model_config.yaml=config\model_config.yaml `
             --dry-run=client -o yaml > configMap.yaml
 
       - name: Apply ConfigMap
-        shell: pwsh
+        shell: powershell
         run: kubectl apply -f configMap.yaml
 
       - name: Redeploy API
-        shell: pwsh
+        shell: powershell
         run: kubectl rollout restart deployment/rag-api
