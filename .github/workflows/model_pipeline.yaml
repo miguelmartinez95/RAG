@@ -13,9 +13,11 @@ env:
   PYTHON_DIR: C:\Users\migue\AppData\Local\Programs\Python\Python312
 
 jobs:
-
   evaluate_model:
     runs-on: [self-hosted, Windows, X64]
+
+    env:
+      PATH: C:\Users\migue\AppData\Local\Programs\Python\Python312;%PATH%
 
     defaults:
       run:
@@ -25,47 +27,36 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Use installed Python 3.12
-        shell: cmd
-        run: |
-          set PATH=%PYTHON_DIR%;%PATH% && ^
-          python --version && ^
-          pip --version
-
       - name: Install Dependencies
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH% && ^
-          pip install --upgrade pip && ^
-          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
+          pip install --upgrade pip || exit /b %ERRORLEVEL%
+          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb || exit /b %ERRORLEVEL%
 
       - name: Ensure CI models exist
         shell: cmd
         run: |
-          if not exist "%CI_BASE%" mkdir "%CI_BASE%" && ^
-          cd rag_system && ^
-          python -c "import os; print('CI models folder:', os.listdir(r'%CI_BASE%'))" && ^
-          python -m rag.models.download_models --config config\model_config.yaml --meta tests\ci_models_meta.json --pvc_base "%CI_BASE%"
+          if not exist "%CI_BASE%" mkdir "%CI_BASE%"
+          python -c "import os; print('CI models folder:', os.listdir(r'%CI_BASE%'))"
+          python -m rag.models.download_models --config config\model_config.yaml --meta tests\ci_models_meta.json --pvc_base "%CI_BASE%" || exit /b %ERRORLEVEL%
 
       - name: Ensure CI vector DB
         shell: cmd
         run: |
-          if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%" && ^
-          cd rag_system && ^
-          set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2 && ^
-          python -m rag.models.build_ci_vector_db
+          if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%"
+          set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2
+          python -m rag.models.build_ci_vector_db || exit /b %ERRORLEVEL%
 
       - name: Prepare CI vector DB
         shell: cmd
         run: |
-          if not exist "tests\tmp_vector_db" mkdir "tests\tmp_vector_db" && ^
+          if not exist "tests\tmp_vector_db" mkdir "tests\tmp_vector_db"
           xcopy /E /Y rag\data\documents\* tests\tmp_vector_db\
 
       - name: Run RAG evaluation
         shell: cmd
         run: |
-          cd rag_system && ^
-          python -m rag.models.build_and_evaluate --config config\model_config.yaml
+          python -m rag.models.build_and_evaluate --config config\model_config.yaml || exit /b %ERRORLEVEL%
 
   wait_for_approval:
     needs: evaluate_model
@@ -81,6 +72,9 @@ jobs:
     needs: wait_for_approval
     runs-on: [self-hosted, Windows, X64]
 
+    env:
+      PATH: C:\Users\migue\AppData\Local\Programs\Python\Python312;%PATH%
+
     defaults:
       run:
         working-directory: rag_system
@@ -89,25 +83,16 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Use installed Python 3.12
-        shell: cmd
-        run: |
-          set PATH=%PYTHON_DIR%;%PATH% && ^
-          python --version && ^
-          pip --version
-
       - name: Install Dependencies
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH% && ^
-          pip install --upgrade pip && ^
-          pip install mlflow pyyaml
+          pip install --upgrade pip || exit /b %ERRORLEVEL%
+          pip install mlflow pyyaml || exit /b %ERRORLEVEL%
 
       - name: Promote model
         shell: cmd
         run: |
-          cd rag_system && ^
-          python -m rag.models.promote_production --config config\model_config.yaml
+          python -m rag.models.promote_production --config config\model_config.yaml || exit /b %ERRORLEVEL%
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
@@ -117,9 +102,9 @@ jobs:
       - name: Configure kubeconfig
         shell: cmd
         run: |
-          kubectl config set-cluster rag-cluster --server=%KUBE_API_SERVER% --insecure-skip-tls-verify=true && ^
-          kubectl config set-credentials github-actions --token=%KUBE_TOKEN% && ^
-          kubectl config set-context default --cluster=rag-cluster --user=github-actions && ^
+          kubectl config set-cluster rag-cluster --server=%KUBE_API_SERVER% --insecure-skip-tls-verify=true
+          kubectl config set-credentials github-actions --token=%KUBE_TOKEN%
+          kubectl config set-context default --cluster=rag-cluster --user=github-actions
           kubectl config use-context default
 
       - name: Generate configMap
