@@ -48,7 +48,7 @@ jobs:
         run: |
           if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%"
           set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2
-          python -m rag.models.build_ci_vector_db
+          python -m rag.ingestion.test_index
 
       - name: Prepare CI Vector DB
         shell: cmd
