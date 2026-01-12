@@ -28,43 +28,43 @@ jobs:
       - name: Use installed Python 3.12
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
-          python --version
+          set PATH=%PYTHON_DIR%;%PATH% && ^
+          python --version && ^
           pip --version
 
       - name: Install Dependencies
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
-          pip install --upgrade pip
+          set PATH=%PYTHON_DIR%;%PATH% && ^
+          pip install --upgrade pip && ^
           pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
       - name: Ensure CI models exist
         shell: cmd
         run: |
-          if not exist "%CI_BASE%" mkdir "%CI_BASE%"
-          cd rag_system
-          python -c "import os; print('CI models folder:', os.listdir(r'%CI_BASE%'))"
+          if not exist "%CI_BASE%" mkdir "%CI_BASE%" && ^
+          cd rag_system && ^
+          python -c "import os; print('CI models folder:', os.listdir(r'%CI_BASE%'))" && ^
           python -m rag.models.download_models --config config\model_config.yaml --meta tests\ci_models_meta.json --pvc_base "%CI_BASE%"
 
       - name: Ensure CI vector DB
         shell: cmd
         run: |
-          if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%"
-          cd rag_system
-          set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2
+          if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%" && ^
+          cd rag_system && ^
+          set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2 && ^
           python -m rag.models.build_ci_vector_db
 
       - name: Prepare CI vector DB
         shell: cmd
         run: |
-          if not exist "tests\tmp_vector_db" mkdir "tests\tmp_vector_db"
+          if not exist "tests\tmp_vector_db" mkdir "tests\tmp_vector_db" && ^
           xcopy /E /Y rag\data\documents\* tests\tmp_vector_db\
 
       - name: Run RAG evaluation
         shell: cmd
         run: |
-          cd rag_system
+          cd rag_system && ^
           python -m rag.models.build_and_evaluate --config config\model_config.yaml
 
   wait_for_approval:
@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Manual approval step
         shell: cmd
-        run: echo "Check MLflow metrics, then approve to continue."
+        run: echo Check MLflow metrics, then approve to continue.
 
   promote_and_deploy:
     needs: wait_for_approval
@@ -92,21 +92,21 @@ jobs:
       - name: Use installed Python 3.12
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
-          python --version
+          set PATH=%PYTHON_DIR%;%PATH% && ^
+          python --version && ^
           pip --version
 
       - name: Install Dependencies
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PATH%
-          pip install --upgrade pip
+          set PATH=%PYTHON_DIR%;%PATH% && ^
+          pip install --upgrade pip && ^
           pip install mlflow pyyaml
 
       - name: Promote model
         shell: cmd
         run: |
-          cd rag_system
+          cd rag_system && ^
           python -m rag.models.promote_production --config config\model_config.yaml
 
       - name: Set up kubectl
@@ -117,9 +117,9 @@ jobs:
       - name: Configure kubeconfig
         shell: cmd
         run: |
-          kubectl config set-cluster rag-cluster --server=%KUBE_API_SERVER% --insecure-skip-tls-verify=true
-          kubectl config set-credentials github-actions --token=%KUBE_TOKEN%
-          kubectl config set-context default --cluster=rag-cluster --user=github-actions
+          kubectl config set-cluster rag-cluster --server=%KUBE_API_SERVER% --insecure-skip-tls-verify=true && ^
+          kubectl config set-credentials github-actions --token=%KUBE_TOKEN% && ^
+          kubectl config set-context default --cluster=rag-cluster --user=github-actions && ^
           kubectl config use-context default
 
       - name: Generate configMap
