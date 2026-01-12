@@ -24,12 +24,11 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Use installed Python
-        shell: pwsh
+      - name: Use installed Python 3.12
+        shell: cmd
         run: |
-          # Add Python 3.12 to PATH
-          $env:PATH = "C:\Users\migue\AppData\Local\Programs\Python\Python312;$env:PATH"
-          python --version  # Verify
+          set PATH=C:\Users\migue\AppData\Local\Programs\Python\Python312;%PATH%
+          python --version
 
       - name: Install Dependencies
         run: |
@@ -97,12 +96,11 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Use installed Python
-        shell: pwsh
+      - name: Use installed Python 3.12
+        shell: cmd
         run: |
-          # Add Python 3.12 to PATH
-          $env:PATH = "C:\Users\migue\AppData\Local\Programs\Python\Python312;$env:PATH"
-          python --version  # Verify
+          set PATH=C:\Users\migue\AppData\Local\Programs\Python\Python312;%PATH%
+          python --version
 
       - name: Install Dependencies
         shell: pwsh
