@@ -8,7 +8,7 @@ on:
 
 env:
   CI: true
-  CI_BASE: rag_system\tests\ci_models
+  CI_BASE: ${{ github.workspace }}\rag_system\tests\ci_models
   VECTOR_DB_PATH: rag_system\tests\tmp_vector_db
   PYTHON_DIR: C:\Users\migue\AppData\Local\Programs\Python\Python312
 
@@ -47,7 +47,7 @@ jobs:
         shell: cmd
         run: |
           if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%"
-          set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2
+          set EMBED_PATH=%CI_BASE%\embeddings\sentence-transformers\all-MiniLM-L6-v2
           python -m rag.ingestion.test_index
 
       - name: Prepare CI Vector DB
