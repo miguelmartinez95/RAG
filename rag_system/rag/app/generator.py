@@ -67,7 +67,7 @@ class GeneratorModel:
 
         except Exception as e:
             cls._failed = True
-            print(f"❌ Generator failed to initialize: {e}")
+            print(f"Generator failed to initialize: {e}")
             raise
 
     @classmethod
@@ -75,7 +75,7 @@ class GeneratorModel:
         """Force model loading at startup"""
         print("Preloading generator model...")
         cls.get_models()
-        print("Generator model loaded ✅")
+        print("Generator model loaded")
 
     # ✅ PUBLIC API (no protected access)
     @classmethod

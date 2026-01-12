@@ -207,7 +207,7 @@ def download_and_deploy_models(config_file: str, meta_file: str, pvc_base_path: 
     with open(meta_file, "w") as f:
         json.dump(meta, f, indent=2)
 
-    print("✅ All models processed successfully", flush=True)
+    print("All models processed successfully", flush=True)
 
 
 if __name__ == "__main__":

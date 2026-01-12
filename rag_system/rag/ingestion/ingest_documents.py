@@ -84,4 +84,4 @@ if __name__ == "__main__":
     # Build vector DB directly on local disk
     build_index()
 
-    print("✅ Vector DB ready locally — runtime containers can use it directly")
+    print("Vector DB ready locally — runtime containers can use it directly")
