@@ -1,5 +1,7 @@
 import os
 import json
+
+import argparse
 import yaml
 
 from datetime import datetime
@@ -109,8 +111,11 @@ def download_and_deploy_models(config_file: str, meta_file: str, pvc_base_path: 
         # --------------------------------------------------
         # Resolve PVC path
         # --------------------------------------------------
-        if model_type == "embedding":
-            pvc_path = Path(cfg["local_path"])
+        local_override = cfg.get("local_path")
+
+        if local_override:
+            # Always resolve under pvc_base_path in CI or local runs
+            pvc_path = Path(pvc_base_path) / Path(local_override).name
         else:
             pvc_path = Path(pvc_base_path) / model_key
 
@@ -209,16 +214,24 @@ if __name__ == "__main__":
 
     import glob
 
-    for lock_dir in glob.glob("/models/hf/**/*.lock", recursive=True):
-        print(f"Removing stale HF lock: {lock_dir}", flush=True)
-        shutil.rmtree(lock_dir, ignore_errors=True)
-
-    import argparse
+    #for lock_dir in glob.glob("/models/hf/**/*.lock", recursive=True):
+    #    print(f"Removing stale HF lock: {lock_dir}", flush=True)
+    #    shutil.rmtree(lock_dir, ignore_errors=True)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, help="Path to model config YAML")
     parser.add_argument("--meta", required=True, help="Path to metadata JSON")
     parser.add_argument("--pvc_base", required=True, help="Local path to store models")
+
     args = parser.parse_args()
+
+    hf_base = os.getenv("HF_HOME", str(Path(args.pvc_base) / "hf_cache"))
+
+    for lock_dir in Path(hf_base).rglob("*.lock"):
+        print(f"Removing stale HF lock: {lock_dir}", flush=True)
+        shutil.rmtree(lock_dir, ignore_errors=True)
+
+
+
 
     download_and_deploy_models(args.config, args.meta, args.pvc_base)

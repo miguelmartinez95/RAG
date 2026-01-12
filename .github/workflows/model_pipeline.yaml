@@ -4,7 +4,12 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - rag_system/k8s/configMap.yaml
+      - rag_system/config/model_config.yaml
+
+env:
+  CI: true
+  CI_BASE: rag_system/tests/ci_models
+  VECTOR_DB_PATH: rag_system/tests/tmp_vector_db
 
 jobs:
 
@@ -28,6 +33,28 @@ jobs:
         run: |
           pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
+      - name: Ensure CI models exist
+        run: |
+          mkdir -p ${{ env.CI_BASE }}
+          if [ -z "$(ls -A ${{ env.CI_BASE }})" ]; then
+            echo "CI models folder empty – downloading all models..."
+            python -m rag.models.download_models \
+              --config config/model_config.yaml \
+              --meta tests/ci_models_meta.json \
+              --pvc_base ${{ env.CI_BASE }}
+          else
+            echo "✅ CI models already exist – skipping download"
+
+      - name: Ensure CI vector DB
+        run: |
+          mkdir -p ${{ env.VECTOR_DB_PATH }}
+          if ls ${{ env.VECTOR_DB_PATH }}/*.sqlite3 1> /dev/null 2>&1 || ls ${{ env.VECTOR_DB_PATH }}/*.parquet 1> /dev/null 2>&1; then
+            echo "✅ CI vector DB already exists – skipping build"
+          else
+            echo "⚠️ CI vector DB missing – building..."
+            # Pass embedding model path to the CI vector DB builder
+            EMB_PATH="${{ env.CI_BASE }}/embeddings/all-MiniLM-L6-v2"
+            python -m rag.models.build_ci_vector_db
 
       - name: Prepare CI vector DB
         if: ${{ env.CI == 'true' }}
@@ -38,7 +65,6 @@ jobs:
       - name: Run RAG evaluation
         env:
           MODEL_CONFIG_PATH: config/model_config.yaml
-          VECTOR_DB_PATH: tests/tmp_vector_db  # <- make retriever pick up CI DB
         run: python -m rag.models.build_and_evaluate
 
   wait_for_approval:
