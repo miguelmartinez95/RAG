@@ -57,7 +57,7 @@ jobs:
           } else {
             Write-Host "⚠️ CI vector DB missing – building..."
             $env:EMBED_PATH = Join-Path $env:CI_BASE "embeddings\all-MiniLM-L6-v2"
-            python -m rag.models.build_ci_vector_db
+            python -m rag.ingestion.test_index
           }
 
       - name: Prepare CI vector DB
