@@ -1,4 +1,4 @@
-name: RAG Model Pipeline
+name: RAG Model Pipeline Old
 
 on:
   workflow_dispatch:
