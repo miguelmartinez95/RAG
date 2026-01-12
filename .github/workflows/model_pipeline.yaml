@@ -36,53 +36,36 @@ jobs:
         shell: cmd
         run: |
           set PATH=%PYTHON_DIR%;%PATH%
-          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers ^
-            langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
+          pip install --upgrade pip
+          pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain langchain-community langchain-huggingface langgraph chromadb
 
       - name: Ensure CI models exist
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
-          New-Item -ItemType Directory -Force -Path $env:CI_BASE
-          if (-not (Get-ChildItem -Path $env:CI_BASE -Force)) {
-            Write-Host "CI models folder empty – downloading all models..."
-            python -m rag.models.download_models `
-              --config config\model_config.yaml `
-              --meta tests\ci_models_meta.json `
-              --pvc_base $env:CI_BASE
-          } else {
-            Write-Host "✅ CI models already exist – skipping download"
-          }
+          if not exist "%CI_BASE%" mkdir "%CI_BASE%"
+          cd rag_system
+          python -c "import os; print('CI models folder:', os.listdir(r'%CI_BASE%'))"
+          python -m rag.models.download_models --config config\model_config.yaml --meta tests\ci_models_meta.json --pvc_base "%CI_BASE%"
 
       - name: Ensure CI vector DB
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
-          New-Item -ItemType Directory -Force -Path $env:VECTOR_DB_PATH
-          $dbExists = (Get-ChildItem -Path $env:VECTOR_DB_PATH -Include *.sqlite3, *.parquet -Force -ErrorAction SilentlyContinue)
-          if ($dbExists) {
-            Write-Host "✅ CI vector DB already exists – skipping build"
-          } else {
-            Write-Host "⚠️ CI vector DB missing – building..."
-            $env:EMBED_PATH = Join-Path $env:CI_BASE "embeddings\all-MiniLM-L6-v2"
-            python -m rag.models.build_ci_vector_db
-          }
+          if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%"
+          cd rag_system
+          set EMBED_PATH=%CI_BASE%\embeddings\all-MiniLM-L6-v2
+          python -m rag.models.build_ci_vector_db
 
       - name: Prepare CI vector DB
-        if: ${{ env.CI == 'true' }}
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
-          New-Item -ItemType Directory -Force -Path tests\tmp_vector_db
-          Copy-Item -Path rag\data\documents\* -Destination tests\tmp_vector_db -Force
+          if not exist "tests\tmp_vector_db" mkdir "tests\tmp_vector_db"
+          xcopy /E /Y rag\data\documents\* tests\tmp_vector_db\
 
       - name: Run RAG evaluation
-        env:
-          MODEL_CONFIG_PATH: config\model_config.yaml
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
-          python -m rag.models.build_and_evaluate
+          cd rag_system
+          python -m rag.models.build_and_evaluate --config config\model_config.yaml
 
   wait_for_approval:
     needs: evaluate_model
@@ -91,8 +74,8 @@ jobs:
       name: production
     steps:
       - name: Manual approval step
-        shell: powershell
-        run: Write-Host "Check MLflow metrics, then approve to continue."
+        shell: cmd
+        run: echo "Check MLflow metrics, then approve to continue."
 
   promote_and_deploy:
     needs: wait_for_approval
@@ -107,25 +90,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Use installed Python 3.12
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
+          set PATH=%PYTHON_DIR%;%PATH%
           python --version
           pip --version
 
       - name: Install Dependencies
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
+          set PATH=%PYTHON_DIR%;%PATH%
+          pip install --upgrade pip
           pip install mlflow pyyaml
 
       - name: Promote model
-        env:
-          MODEL_CONFIG_PATH: config\model_config.yaml
-        shell: powershell
+        shell: cmd
         run: |
-          $env:PATH = "$env:PYTHON_DIR;$env:PATH"
-          python -m rag.models.promote_production
+          cd rag_system
+          python -m rag.models.promote_production --config config\model_config.yaml
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
@@ -133,29 +115,24 @@ jobs:
           version: 'latest'
 
       - name: Configure kubeconfig
-        shell: powershell
+        shell: cmd
         run: |
-          kubectl config set-cluster rag-cluster `
-            --server=${{ secrets.KUBE_API_SERVER }} `
-            --insecure-skip-tls-verify=true
-          kubectl config set-credentials github-actions `
-            --token=${{ secrets.KUBE_TOKEN }}
-          kubectl config set-context default `
-            --cluster=rag-cluster `
-            --user=github-actions
+          kubectl config set-cluster rag-cluster --server=%KUBE_API_SERVER% --insecure-skip-tls-verify=true
+          kubectl config set-credentials github-actions --token=%KUBE_TOKEN%
+          kubectl config set-context default --cluster=rag-cluster --user=github-actions
           kubectl config use-context default
 
       - name: Generate configMap
-        shell: powershell
+        shell: cmd
         run: |
-          kubectl create configmap rag-model-config `
-            --from-file=model_config.yaml=config\model_config.yaml `
-            --dry-run=client -o yaml > configMap.yaml
+          kubectl create configmap rag-model-config --from-file=model_config.yaml=config\model_config.yaml --dry-run=client -o yaml > configMap.yaml
 
       - name: Apply ConfigMap
-        shell: powershell
-        run: kubectl apply -f configMap.yaml
+        shell: cmd
+        run: |
+          kubectl apply -f configMap.yaml
 
       - name: Redeploy API
-        shell: powershell
-        run: kubectl rollout restart deployment/rag-api
+        shell: cmd
+        run: |
+          kubectl rollout restart deployment/rag-api
