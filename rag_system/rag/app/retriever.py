@@ -19,7 +19,9 @@ if IS_CI:
     RERANKER_OUTPUT_DIR = os.path.join("C:", "kind-data", "actions-runner", "actions-runner", "_work", "RAG", "RAG",
                                        "rag_system", "tests", "ci_models", "reranker",
                                        "cross-encoder", "ms-marco-MiniLM-L-6-v2")
-    VECTOR_DB_PATH=os.getenv("VECTOR_DB_PATH", "tests/tmp_vector_db")
+    VECTOR_DB_PATH = Path(
+        "C:/kind-data/actions-runner/actions-runner/_work/RAG/RAG/rag_system/tests/tmp_vector_db"
+    )
     EMBEDDINGS_OUTPUT_DIR = os.getenv(
         "EMBEDDINGS_MODEL_PATH",
         f"C:/kind-data/actions-runner/actions-runner/_work/RAG/RAG/rag_system/tests/ci_models/embeddings/sentence-transformers/{MODEL_NAME}",
