@@ -98,7 +98,7 @@ if not Path(RERANKER_OUTPUT_DIR).exists():
     raise RuntimeError(f"Reranker model not found at {RERANKER_OUTPUT_DIR}")
 
 reranker = HuggingFaceCrossEncoder(
-    model_name=RERANKER_OUTPUT_DIR
+    model_name=str(RERANKER_OUTPUT_DIR)
 )
 
 #compressor = CrossEncoderReranker(
