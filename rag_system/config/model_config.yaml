@@ -1,5 +1,4 @@
 mlflow_uri: "http://mlflow-server:5000"
-output_dir: "s3://rag-models-bucket/models"
 
 evaluator_model:
   label: "rag_evaluator"
@@ -25,3 +24,13 @@ generation_model:
   hf_id: "distilgpt2"  # or any causal LM you want
   local_path: "/models/generation"
   type: "causal"
+
+thresholds:
+  retrieval_hit_rate@5: 0.60
+  retrieval_recall@5: 0.40
+  reranker_gain: 0.10
+  context_precision@3: 0.50
+  avg_eval_score: 0.50
+  min_eval_score: 0.20
+  answer_groundedness: 0.30
+  avg_latency_ms: 3000
