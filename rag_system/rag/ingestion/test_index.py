@@ -6,7 +6,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 import os
 
-VECTOR_DB_PATH = Path(os.getenv("VECTOR_DB_PATH", "tests/tmp_vector_db"))
+VECTOR_DB_PATH = Path(os.getenv("VECTOR_DB_PATH", "C:/kind-data/actions-runner/actions-runner/_work/RAG/RAG/rag_system/tests/tmp_vector_db"))
 DOCS_PATH = VECTOR_DB_PATH  # in CI, txt files live here
 
 MODEL_NAME = "all-MiniLM-L6-v2"
