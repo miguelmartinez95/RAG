@@ -34,7 +34,7 @@ jobs:
         run: |
           set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
           python -m pip install --upgrade pip
-          python -m pip install mlflow pyyaml numpy torch transformers safetensors sentence-transformers langchain-chroma langchain==0.3.27 langchain-community langchain-huggingface langgraph chromadb
+          python -m pip install mlflow pyyaml numpy torch tiktoken transformers safetensors sentence-transformers langchain-chroma langchain==0.3.27 langchain-community langchain-huggingface langgraph chromadb
 
       - name: Ensure CI Models
         shell: cmd
