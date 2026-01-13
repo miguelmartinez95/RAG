@@ -11,19 +11,23 @@ TOP_N = 3
 # ---- Detect CI environment ----
 IS_CI = os.getenv("CI", "false") == "true"
 
-RERANKER_OUTPUT_DIR = "/models/reranker_model/cross-encoder/ms-marco-MiniLM-L-6-v2"
-VECTOR_DB_PATH = os.getenv("VECTOR_DB_PATH", "tests/tmp_vector_db" if IS_CI else "/vector_db")
 MODEL_NAME = "all-MiniLM-L6-v2"
-EMBEDDINGS_OUTPUT_DIR = f"/models/embeddings/sentence-transformers/{MODEL_NAME}"
-
-
 # ---- Embeddings and Chroma retriever ----
-embeddings = HuggingFaceEmbeddings(
-    model_name=EMBEDDINGS_OUTPUT_DIR,
-    encode_kwargs={"normalize_embeddings": True}
-)
+
 
 if IS_CI:
+    RERANKER_OUTPUT_DIR = os.path.join("C:", "kind-data", "actions-runner", "actions-runner", "_work", "RAG", "RAG",
+                                       "rag_system", "tests", "ci_models", "reranker",
+                                       "cross-encoder", "ms-marco-MiniLM-L-6-v2")
+    VECTOR_DB_PATH=os.getenv("VECTOR_DB_PATH", "tests/tmp_vector_db")
+    EMBEDDINGS_OUTPUT_DIR = os.getenv(
+        "EMBEDDINGS_MODEL_PATH",
+        f"C:/kind-data/actions-runner/actions-runner/_work/RAG/RAG/rag_system/tests/ci_models/embeddings/sentence-transformers/{MODEL_NAME}",
+    )
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDINGS_OUTPUT_DIR,
+        encode_kwargs={"normalize_embeddings": True}
+    )
     # Build mini CI DB if missing
     if not VECTOR_DB_PATH.exists() or not any(VECTOR_DB_PATH.glob("*")):
         VECTOR_DB_PATH.mkdir(parents=True, exist_ok=True)
@@ -62,7 +66,13 @@ if IS_CI:
             collection_name="default",
         )
 else:
-
+    RERANKER_OUTPUT_DIR = "/models/reranker_model/cross-encoder/ms-marco-MiniLM-L-6-v2"
+    VECTOR_DB_PATH=os.getenv("VECTOR_DB_PATH", "/vector_db")
+    EMBEDDINGS_OUTPUT_DIR = f"/models/embeddings/sentence-transformers/{MODEL_NAME}"
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDINGS_OUTPUT_DIR,
+        encode_kwargs={"normalize_embeddings": True}
+    )
 # ---- Ensure vector DB exists for non-CI runs ----
     if not Path(VECTOR_DB_PATH).exists() or not any(Path(VECTOR_DB_PATH).glob("*")):
         raise RuntimeError(f"Vector DB not found at {VECTOR_DB_PATH}. Run the local build_index script first.")
