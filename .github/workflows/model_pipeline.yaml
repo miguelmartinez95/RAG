@@ -11,6 +11,7 @@ env:
   CI_BASE: ${{ github.workspace }}\rag_system\tests\ci_models
   VECTOR_DB_PATH: rag_system\tests\tmp_vector_db
   PYTHON_DIR: C:\Users\migue\AppData\Local\Programs\Python\Python312
+  MODEL_CONFIG_PATH: ${{ github.workspace }}\config\model_config.yaml
 
 jobs:
   evaluate_model:
