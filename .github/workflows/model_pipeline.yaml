@@ -47,7 +47,7 @@ jobs:
         shell: cmd
         run: |
           if not exist "%VECTOR_DB_PATH%" mkdir "%VECTOR_DB_PATH%"
-          set EMBED_PATH=%CI_BASE%\embeddings\sentence-transformers\all-MiniLM-L6-v2
+          set EMBED_PATH=C:\kind-data\actions-runner\actions-runner\_work\RAG\RAG\rag_system\tests\ci_models\embeddings\sentence-transformers\all-MiniLM-L6-v2
           python -m rag.ingestion.test_index
 
       - name: Prepare CI Vector DB

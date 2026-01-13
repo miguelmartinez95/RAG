@@ -12,7 +12,7 @@ DOCS_PATH = VECTOR_DB_PATH  # in CI, txt files live here
 MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDINGS_MODEL_PATH = os.getenv(
     "EMBEDDINGS_MODEL_PATH",
-    f"/models/embeddings/sentence-transformers/{MODEL_NAME}",
+    f"C:/kind-data/actions-runner/actions-runner/_work/RAG/RAG/rag_system/tests/ci_models/embeddings/sentence-transformers/{MODEL_NAME}",
 )
 
 def main():

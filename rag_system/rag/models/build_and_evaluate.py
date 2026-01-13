@@ -13,7 +13,9 @@ CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
-PVC_MODEL_PATH = "/models/generation_model"  # where the generation model is stored in PVC
+PVC_MODEL_PATH = os.path.join("C:", "kind-data", "actions-runner", "actions-runner","_work", "RAG","RAG","rag_system","tests","ci_models","generation")
+
+#PVC_MODEL_PATH = "C:\kind-data\actions-runner\actions-runner\_work\RAG\RAG\rag_system\tests\ci_models\generation"  # where the generation model is stored in PVC
 
 MLFLOW_URI = config["mlflow_uri"]
 MODEL_NAME = config["generation_model"]["label"]
@@ -69,11 +71,11 @@ with mlflow.start_run(run_name=run_name) as run:
                     stage="Staging"
                 )
                 mlflow.set_tag("promotion_candidate", "true")
-                logging.info(f"✅ Model registered as STAGING (v{model_version})")
+                logging.info(f"Model registered as STAGING (v{model_version})")
             else:
                 logging.warning("No versions found to transition to Staging")
         except Exception as e:
             logging.error(f"MLflow registration failed: {e}")
     else:
         mlflow.set_tag("promotion_candidate", "false")
-        logging.warning("❌ Model failed thresholds — not registered")
+        logging.warning("Model failed thresholds — not registered")
