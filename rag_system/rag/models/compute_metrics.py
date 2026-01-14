@@ -3,6 +3,7 @@ import time
 import json
 import statistics
 from rag.app.graph import generate_graph
+from rag.app.state import RAGState
 from rag.app.retriever import retrieve_data, db, reranker, TOP_K, TOP_N
 from langchain.embeddings import HuggingFaceEmbeddings
 import os
@@ -61,7 +62,9 @@ def compute_metrics():
 
         # ---- Full RAG pipeline ----
         start = time.time()
-        state = graph.run({"query": query})
+        state = RAGState(query=query)
+        state = graph.invoke(state)
+
         latency = (time.time() - start) * 1000
 
         score = state.score
