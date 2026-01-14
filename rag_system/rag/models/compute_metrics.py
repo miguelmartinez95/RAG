@@ -7,7 +7,7 @@ from rag.app.retriever import retrieve_data, db, reranker, TOP_K, TOP_N
 from langchain.embeddings import HuggingFaceEmbeddings
 import os
 
-EVAL_DATA_PATH = "/app/rag/data/rag_eval.jsonl"
+EVAL_DATA_PATH = "C:/kind-data/actions-runner/actions-runner/_work/RAG/RAG/rag_system/rag/data/rag_eval.jsonl"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
 if os.environ.get("CI") == "true":
