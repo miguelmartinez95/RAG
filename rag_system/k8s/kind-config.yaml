@@ -10,3 +10,6 @@ nodes:
   - containerPort: 32443
     hostPort: 32443
     protocol: TCP
+  - containerPort: 32081   # NodePort in the cluster
+    hostPort: 32081        # Windows host
+    protocol: TCP

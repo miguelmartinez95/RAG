@@ -1,4 +1,4 @@
-mlflow_uri: "http://mlflow-server:5000"
+mlflow_uri: "http://localhost:32081"
 
 evaluator_model:
   label: "rag_evaluator"

@@ -3,11 +3,11 @@ kind: Service
 metadata:
   name: mlflow
 spec:
+  type: NodePort
   selector:
     app: mlflow
   ports:
-    - port: 5000
+    - name: http
+      port: 5000
       targetPort: 5000
-      protocol: TCP
-      nodePort: 30050   # fixed port on host
-  type: NodePort
+      nodePort: 32081

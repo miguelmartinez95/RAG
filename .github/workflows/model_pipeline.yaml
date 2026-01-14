@@ -12,6 +12,7 @@ env:
   VECTOR_DB_PATH: rag_system\tests\tmp_vector_db
   PYTHON_DIR: C:\Users\migue\AppData\Local\Programs\Python\Python312
   MODEL_CONFIG_PATH: ${{ github.workspace }}\rag_system\config\model_config.yaml
+  MLFLOW_TRACKING_URI: "http://localhost:32081"
 
 jobs:
   evaluate_model:

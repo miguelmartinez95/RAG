@@ -1,14 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: mlflow
+  name: mlflow-ingress
   namespace: default
   annotations:
     kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-    - host: mlflow.local
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix

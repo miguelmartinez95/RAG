@@ -3,9 +3,12 @@ kind: Service
 metadata:
   name: rag-gradio
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: rag-gradio
   ports:
-    - port: 7860
+    - name: http
+      port: 7860
       targetPort: 7860
+      nodePort: 32080
+
