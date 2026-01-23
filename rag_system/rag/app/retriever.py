@@ -1,8 +1,8 @@
 from pathlib import Path
-import yaml
 from langchain_community.cross_encoders import HuggingFaceCrossEncoder
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from .ensure_state import ensure_rag_state
 import os
 
 TOP_K = 10
@@ -113,6 +113,8 @@ reranker = HuggingFaceCrossEncoder(
 
 # ---- Retrieval function ----
 def retrieve_data(state):
+    state = ensure_rag_state(state)
+
     query = state.query
 
     # 1️⃣ Vector search

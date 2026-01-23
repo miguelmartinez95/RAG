@@ -1,4 +1,5 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from .ensure_state import ensure_rag_state
 import os
 import yaml
 import torch
@@ -32,6 +33,8 @@ class Evaluator:
 
 
 def evaluate(state):
+    state = ensure_rag_state(state)
+
     """
     LangGraph evaluator node for DeBERTa.
     Input: state.query, state.context, state.answer

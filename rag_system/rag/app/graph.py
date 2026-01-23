@@ -18,6 +18,11 @@ def generate_graph():
 
     graph.set_finish_point("evaluator")
 
-    rag_graph = graph.compile()
+    rag_graph = graph.compile(
+        checkpointer=None,
+        interrupt_before=None,
+        interrupt_after=None,
+        debug=False,
+    )
 
     return rag_graph

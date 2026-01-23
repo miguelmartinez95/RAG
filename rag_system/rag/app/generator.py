@@ -1,6 +1,7 @@
 import mlflow
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from mlflow.tracking import MlflowClient
+from .ensure_state import ensure_rag_state
 import yaml
 import os
 
@@ -87,6 +88,8 @@ class GeneratorModel:
 
 
 def generate_answer(state):
+    state = ensure_rag_state(state)
+
     model_obj = GeneratorModel.get_models()
     pipe = model_obj["pipeline"]
     tokenizer = model_obj["tokenizer"]
