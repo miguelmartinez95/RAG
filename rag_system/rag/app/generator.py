@@ -4,6 +4,16 @@ from mlflow.tracking import MlflowClient
 from .ensure_state import ensure_rag_state
 import yaml
 import os
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,          # IMPORTANT
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+    encoding="utf-8",
+)
+logger = logging.getLogger(__name__)
 
 # ConfigMap-mounted path
 CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
@@ -41,10 +51,10 @@ class GeneratorModel:
                 )[0]
                 model_uri = f"models:/{MODEL_NAME}/{latest_prod.version}"
                 local_path = mlflow.artifacts.download_artifacts(model_uri)
-                print(f"Loaded model from MLflow: {model_uri}")
+                logger.info(f"Loaded model from MLflow: {model_uri}")
             except Exception as e:
                 local_path = BOOTSTRAP_MODEL_PATH
-                print(f"MLflow unavailable, using bootstrap model: {e}")
+                logger.info(f"MLflow unavailable, using bootstrap model: {e}")
 
             tokenizer = AutoTokenizer.from_pretrained(local_path, local_files_only=True)
             if tokenizer.pad_token is None:
@@ -71,15 +81,15 @@ class GeneratorModel:
 
         except Exception as e:
             cls._failed = True
-            print(f"Generator failed to initialize: {e}")
+            logger.info(f"Generator failed to initialize: {e}")
             raise
 
     @classmethod
     def preload(cls):
         """Force model loading at startup"""
-        print("Preloading generator model...")
+        logger.info("Preloading generator model...")
         cls.get_models()
-        print("Generator model loaded")
+        logger.info("Generator model loaded")
 
     # ✅ PUBLIC API (no protected access)
     @classmethod
@@ -132,9 +142,7 @@ def generate_answer(state):
 
     state.answer = str(outputs[0].get("generated_text", "")).strip()
 
-    print(
-        "GENERATOR:",
-        state.answer.encode("utf-8", errors="replace").decode("utf-8")
-    )
+    logger.info(f"GENERATOR: {state.answer}")
+
 
     return state  # return the state for LangGraph

@@ -4,6 +4,16 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from .ensure_state import ensure_rag_state
 import os
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,          # IMPORTANT
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+    encoding="utf-8",
+)
+logger = logging.getLogger(__name__)
 
 TOP_K = 10
 TOP_N = 3
@@ -35,7 +45,7 @@ if IS_CI:
     # Build mini CI DB if missing
     if not VECTOR_DB_PATH.exists() or not any(VECTOR_DB_PATH.glob("*")):
         VECTOR_DB_PATH.mkdir(parents=True, exist_ok=True)
-        print("Building CI mini vector DB...")
+        logger.info("Building CI mini vector DB...")
         from langchain.text_splitter import RecursiveCharacterTextSplitter
         from langchain.schema import Document
 
@@ -148,9 +158,6 @@ def retrieve_data(state):
     state.documents = top_docs
     state.context = "\n------\n".join(formatted_chunks)
 
-    print(
-        "RETRIEVER:",
-        state.context.encode("utf-8", errors="replace").decode("utf-8")
-    )
+    logger.info("RETRIEVER:\n%s", state.context)
 
     return state

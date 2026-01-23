@@ -5,13 +5,23 @@ from .state import RAGState
 from .generator import GeneratorModel
 from fastapi.responses import StreamingResponse
 import threading, queue, json
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,          # IMPORTANT
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+    encoding="utf-8",
+)
+logger = logging.getLogger(__name__)
 
 
 try:
     rag_graph = generate_graph()
     GRAPH_READY = True
 except Exception as e:
-    print(f"Graph failed to initialized: {e}")
+    logger.info(f"Graph failed to initialized: {e}")
     rag_graph = None
     GRAPH_READY = False
 
@@ -21,14 +31,13 @@ app = FastAPI(title="RAG Inference API")
 @app.on_event("startup")
 def load_model():
     import threading
-    import logging
 
     def _preload():
         try:
             GeneratorModel.get_models()
-            logging.info("Generator model preloaded")
+            logger.info("Generator model preloaded")
         except Exception as e:
-            logging.error(f"Generator preload failed: {e}")
+            logger.error(f"Generator preload failed: {e}")
 
     threading.Thread(target=_preload, daemon=True).start()
 
