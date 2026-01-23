@@ -94,10 +94,16 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
+      - name: Set Python PATH
+        shell: cmd
+        run: |
+          echo %PYTHON_DIR%>> %GITHUB_PATH%
+          echo %PYTHON_DIR%\Scripts>> %GITHUB_PATH%
+
       - name: Verify Python
         shell: cmd
         run: |
-          set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
+          where python
           python --version
           python -m pip --version
 
@@ -111,7 +117,7 @@ jobs:
       - name: Promote Model
         shell: cmd
         run: |
-          python -m rag.models.promote_production --config config\model_config.yaml
+          python -m rag.models.promote_production_model --config config\model_config.yaml
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
