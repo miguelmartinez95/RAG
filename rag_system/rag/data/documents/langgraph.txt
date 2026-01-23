@@ -1,3 +1,18 @@
-LangGraph is a framework for building stateful, multi-step LLM applications.
-It extends LangChain with graph-based execution.
-LangGraph allows branching, loops, retries, and human-in-the-loop workflows.
+LangGraph is a framework designed for building stateful, multi-step LLM applications. Unlike a simple pipeline that sends a prompt to a model and receives a response, LangGraph allows you to define complex workflows with branching logic, loops, retries, and human-in-the-loop steps. This makes it ideal for applications where the reasoning process or retrieval process involves multiple stages.
+In a RAG system, LangGraph can be used to orchestrate how queries are handled, for example:
+Vector retrieval: Query a vector database to find relevant documents.
+Reranking: Use a cross-encoder or other re-ranking model to prioritize the most relevant documents.
+Context assembly: Format and combine retrieved content into a coherent context.
+LLM generation: Pass the curated context to a language model to produce the answer or completion.
+Post-processing: Optionally, add validation, scoring, or human review steps.
+LangGraph’s modular design allows each of these steps to be represented as nodes in a graph, enabling:
+Conditional branching depending on intermediate outputs (e.g., if no documents are retrieved, retry with a broader query).
+Retry mechanisms for failed or low-confidence retrievals.
+Integration with external tools like MLflow for logging and metrics.
+Easy experimentation with different retrievers, rerankers, or LLMs without rewriting the entire pipeline.
+Key benefits in a RAG system:
+Makes multi-step retrieval and generation explicit and auditable.
+Enables dynamic context building from multiple sources.
+Supports robust error handling, retries, and fallback strategies.
+Simplifies human-in-the-loop integration for sensitive or critical queries.
+Overall, LangGraph extends traditional RAG pipelines by providing a flexible and maintainable orchestration layer, making it easier to scale complex retrieval and generation workflows reliably.

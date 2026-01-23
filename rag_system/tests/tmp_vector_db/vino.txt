@@ -1,10 +1,19 @@
-El vino (del latín vinum) (también mostagán)[1]​ es una bebida hecha de uva (especie Vitis vinifera), mediante la fermentación alcohólica de su mosto o zumo.[2]​ La fermentación se produce por la acción metabólica de levaduras, que transforman los azúcares naturales del fruto en etanol y gas en forma de dióxido de carbono. El azúcar y los ácidos que posee la fruta, Vitis vinífera, son suficientes para el desarrollo de la fermentación. No obstante, el vino es una suma de factores ambientales: clima, latitud, altitud, horas de luz y temperatura, entre varios otros.[3]​ Aproximadamente un 66 % de la recolección mundial de uva se dedica a la producción vinícola; el resto es para su consumo como fruta.[4]​
+Wine is an alcoholic beverage made from the fermentation of grapes, although other fruits can also be used. The production of wine, known as winemaking or vinification, involves harvesting ripe grapes, crushing them to release juice, fermenting the juice with yeast, and then aging the resulting liquid in barrels or tanks.
 
-El cultivo de la vid cubre un 0,5 % del suelo cultivable en el mundo[5]​ y está asociado a lugares con un clima mediterráneo; no en vano, la mitad de la producción mundial de vino se concentra tan solo en tres países mediterráneos: Italia, Francia y España.[6]​[7]​ Existen varias denominaciones de origen reconocidas, entre ellas Rioja, La Mancha, Albariño Oporto, etc.
+The history of wine dates back thousands of years. Archaeological evidence suggests that viticulture and wine production originated in regions of Western Asia, with the earliest known wine traces found in what is now Georgia, Iran, and Armenia. Wine quickly became an important cultural, religious, and economic product, spreading through the Mediterranean and Europe.
 
-Se da el nombre de «vino» únicamente al líquido resultante de la fermentación alcohólica, total o parcial, del zumo de uvas, sin adición de ninguna sustancia. En muchas legislaciones se considera solo como vino a la bebida fermentada obtenida de Vitis vinifera, pese a que se obtienen bebidas semejantes de otras especies como la Vitis labrusca, Vitis rupestris, etc. El conocimiento de la ciencia particular de la elaboración del vino se denomina enología (sin considerar los procesos de cultivo de la vid). La ciencia que trata tan solo de la biología de la vid, así como de su cultivo, se denomina ampelología.[2]​
-Etimología
+Different types of wine are created depending on the grape variety, fermentation process, and aging methods:
 
-La viticultura y la producción de vino se originaron, según parece, en Asia Occidental, por lo que es probable que el origen de la palabra vino proceda de alguna de las lenguas que allí se hablaban, aunque su origen exacto sigue siendo incierto. Fuera de la familia indoeuropea, concretamente entre las lenguas semitas, está el árabe y etíope wain, el asirio īnu y el hebreo yàyin, procedentes todas ellas de la forma proto-semítica *wainu. El término está igualmente en las lenguas kartvelianas del Cáucaso (georgiano), las lenguas indoeuropeas de Asia Menor (hitita y luvita) y del Cáucaso (armenio). La palabra, junto con la viticultura, viajó hacia el Mediterráneo occidental, y se encuentra en griego οἶνος, el albanés vēnë y el latín vinum (de donde viene el castellano vino). Del latín pasó al celta (irlandés antiguo, fin; galo, gwin), al germánico (idioma gótico, wein; alemán, Wein; inglés, wine) y al eslavo (eslavo antiguo y ruso, vino), y del eslavo pasó al lituano výnas.[cita requerida]
+Red wine is made from dark-colored grape varieties and often fermented with the grape skins to extract color, tannins, and flavor.
 
-Otra teoría considera que la raíz se encuentra próxima a la palabra sánscrita vana (amor), que también dio origen a las palabras Venus y Venera. Tal relación semántica estaría dada por la antigua creencia en los poderes afrodisíacos del vino.
+White wine is usually made from green or yellow grapes, and fermentation typically occurs without the skins.
+
+Rosé wine combines elements of both red and white winemaking, often by limiting skin contact.
+
+Sparkling wine is carbonated through natural fermentation in bottles or tanks, with Champagne being the most famous example.
+
+Wine has significant cultural and social importance. It is commonly consumed during meals, celebrations, and religious ceremonies. The taste, aroma, and quality of wine are influenced by terroir—the combination of soil, climate, grape variety, and winemaking techniques.
+
+Modern wine production has expanded globally, with renowned regions including France, Italy, Spain, the United States, and Australia. Each region offers distinct styles and flavors, making wine a complex and diverse subject for enthusiasts and professionals alike.
+
+Wine is also a frequent subject in culinary studies, economics, and history, and it has been referenced in literature, art, and philosophy throughout human history.

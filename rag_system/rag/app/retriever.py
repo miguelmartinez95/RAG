@@ -23,8 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOP_K = 10
-TOP_N = 3
+TOP_K = 3
+TOP_N = 1
 
 # ---- Detect CI environment ----
 IS_CI = os.getenv("CI", "false") == "true"
@@ -68,8 +68,8 @@ if IS_CI:
 
         splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             encoding_name="cl100k_base",
-            chunk_size=20,
-            chunk_overlap=2,
+            chunk_size=100,
+            chunk_overlap=10,
             separators=["\n\n", "\n", ". ", " ", ""]
         )
         chunks = splitter.split_documents(documents)
