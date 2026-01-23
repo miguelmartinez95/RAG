@@ -8,11 +8,19 @@ import threading, queue, json
 import logging
 import sys
 
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+)
+
+# 🔥 Force UTF-8 + safe replacement
+handler.stream.reconfigure(encoding="utf-8", errors="replace")
+
 logging.basicConfig(
-    level=logging.INFO,          # IMPORTANT
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-    encoding="utf-8",
+    level=logging.INFO,
+    handlers=[handler],
 )
 logger = logging.getLogger(__name__)
 

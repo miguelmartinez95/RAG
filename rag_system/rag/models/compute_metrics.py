@@ -89,10 +89,10 @@ def compute_metrics():
         latencies.append(latency)
 
     return {
-        "retrieval_hit_rate@5": np.mean(hits),
-        "retrieval_recall@5": np.mean(recalls),
+        "retrieval_hit_rate5": np.mean(hits),
+        "retrieval_recall5": np.mean(recalls),
         "reranker_gain": np.mean(reranker_gains),
-        "context_precision@3": np.mean(context_precisions),
+        "context_precision3": np.mean(context_precisions),
         "avg_eval_score": np.mean(eval_scores),
         "min_eval_score": min(eval_scores),
         "eval_score_std": statistics.stdev(eval_scores),

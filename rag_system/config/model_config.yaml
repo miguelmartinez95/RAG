@@ -26,10 +26,10 @@ generation_model:
   type: "causal"
 
 thresholds:
-  retrieval_hit_rate@5: 0.60
-  retrieval_recall@5: 0.40
+  retrieval_hit_rate5: 0.60
+  retrieval_recall5: 0.40
   reranker_gain: 0.10
-  context_precision@3: 0.50
+  context_precision3: 0.50
   avg_eval_score: 0.50
   min_eval_score: 0.20
   answer_groundedness: 0.30
