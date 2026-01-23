@@ -12,7 +12,10 @@ with open(CONFIG_PATH, "r") as f:
 
 MLFLOW_URI = config["mlflow_uri"]
 MODEL_NAME = config["generation_model"]["label"]
-BOOTSTRAP_MODEL_PATH = "/models/generation_model"
+BOOTSTRAP_MODEL_PATH = os.getenv(
+    "GENERATION_MODEL_PATH",
+    "/models/generation_model"
+)
 
 mlflow.set_tracking_uri(MLFLOW_URI)
 client = MlflowClient()
@@ -42,10 +45,10 @@ class GeneratorModel:
                 local_path = BOOTSTRAP_MODEL_PATH
                 print(f"MLflow unavailable, using bootstrap model: {e}")
 
-            tokenizer = AutoTokenizer.from_pretrained(local_path)
+            tokenizer = AutoTokenizer.from_pretrained(local_path, local_files_only=True)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
-            model = AutoModelForCausalLM.from_pretrained(local_path, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(local_path, local_files_only=True, trust_remote_code=True)
 
             if tokenizer.vocab_size != model.config.vocab_size:
                 raise RuntimeError(

@@ -13,6 +13,7 @@ env:
   PYTHON_DIR: C:\Users\migue\AppData\Local\Programs\Python\Python312
   MODEL_CONFIG_PATH: ${{ github.workspace }}\rag_system\config\model_config.yaml
   MLFLOW_TRACKING_URI: "http://localhost:32081"
+  GENERATION_MODEL_PATH: C:\kind-data\actions-runner\actions-runner\_work\RAG\RAG\rag_system\tests\ci_models\generation
 
 jobs:
   evaluate_model:
