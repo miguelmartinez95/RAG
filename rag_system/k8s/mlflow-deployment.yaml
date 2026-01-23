@@ -22,6 +22,7 @@ spec:
             - "-c"
             - |
               mkdir -p /mlflow/artifacts && \
+              mlflow db upgrade sqlite:////mlflow/mlflow.db && \
               mlflow server \
                 --backend-store-uri=sqlite:////mlflow/mlflow.db \
                 --default-artifact-root=/mlflow/artifacts \
