@@ -6,8 +6,7 @@ import torch
 with open("config/rag_config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-EVALUATOR_OUTPUT_DIR = "/models/evaluator_model"
-BOOTSTRAP_MODEL_PATH = os.getenv(
+EVALUATOR_OUTPUT_DIR = os.getenv(
     "EVALUATOR_MODEL_PATH",
     "/models/evaluator_model"
 )
