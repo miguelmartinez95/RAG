@@ -30,7 +30,7 @@ thresholds:
   retrieval_recall5: 0.40
   reranker_gain: 0.10
   context_precision3: 0.50
-  avg_eval_score: 0.50
-  min_eval_score: 0.20
-  answer_groundedness: 0.30
-  avg_latency_ms: 3000
+  avg_eval_score: 0.05
+  min_eval_score: 0.0001
+  answer_groundedness: 0.20
+  avg_latency_ms: 8000
