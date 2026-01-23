@@ -5,6 +5,7 @@ import statistics
 from rag.app.graph import generate_graph
 from rag.app.state import RAGState
 from rag.app.retriever import retrieve_data, db, reranker, TOP_K, TOP_N
+from rag.app.ensure_state import ensure_rag_state
 from langchain.embeddings import HuggingFaceEmbeddings
 import os
 
@@ -66,6 +67,8 @@ def compute_metrics():
         state = graph.invoke(state)
 
         latency = (time.time() - start) * 1000
+
+        state = ensure_rag_state(state)
 
         score = state.score
         answer = state.answer
