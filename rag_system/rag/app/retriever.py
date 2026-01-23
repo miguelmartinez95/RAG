@@ -148,6 +148,9 @@ def retrieve_data(state):
     state.documents = top_docs
     state.context = "\n------\n".join(formatted_chunks)
 
-    print(f"RETRIEVER: {state.context}")
+    print(
+        "RETRIEVER:",
+        state.context.encode("utf-8", errors="replace").decode("utf-8")
+    )
 
     return state

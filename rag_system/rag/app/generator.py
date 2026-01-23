@@ -132,6 +132,9 @@ def generate_answer(state):
 
     state.answer = str(outputs[0].get("generated_text", "")).strip()
 
-    print(f"GENERATOR: {state.answer}")
+    print(
+        "GENERATOR:",
+        state.answer.encode("utf-8", errors="replace").decode("utf-8")
+    )
 
     return state  # return the state for LangGraph
