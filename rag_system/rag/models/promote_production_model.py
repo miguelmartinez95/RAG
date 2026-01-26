@@ -2,26 +2,28 @@ from mlflow.tracking import MlflowClient
 import yaml
 import os
 
-# ConfigMap-mounted path
 CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/config/model_config.yaml")
 
-with open(CONFIG_PATH, "r") as f:
+with open(CONFIG_PATH) as f:
     config = yaml.safe_load(f)
 
 MODEL_NAME = config["generation_model"]["label"]
 
 client = MlflowClient()
-versions = client.get_latest_versions(MODEL_NAME, stages=["Staging"])
-if not versions:
-    raise RuntimeError("No model in Staging")
 
+# Find model version with @staging alias
+versions = client.search_model_versions(f"name='{MODEL_NAME}'")
 
-version = versions[0].version
-client.transition_model_version_stage(
-    name=MODEL_NAME,
-    version=version,
-    stage="Production",
-    archive_existing_versions=True
+staging = next(
+    v for v in versions if "staging" in (v.aliases or [])
 )
 
-print(f"Promoted {MODEL_NAME} v{version} to Production")
+client.set_registered_model_alias(
+    name=MODEL_NAME,
+    alias="production",
+    version=staging.version,
+)
+
+print(
+    f"Promoted {MODEL_NAME} v{staging.version} → @production"
+)

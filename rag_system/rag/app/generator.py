@@ -6,9 +6,7 @@ import yaml
 import os
 import logging
 import sys
-from pathlib import Path
-import shutil
-import tempfile
+
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(
@@ -45,35 +43,50 @@ client = MlflowClient()
 MODEL_STAGE = os.getenv("MODEL_STAGE", "Production")
 
 
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
+
+MLFLOW_URI = config["mlflow_uri"]
+
+mlflow.set_tracking_uri(MLFLOW_URI)
+
+# ---------------- Generator Singleton ----------------
 class GeneratorModel:
     _instance = None
-    _failed = False   # 👈 ADD THIS
+    _failed = False
 
     @classmethod
     def get_models(cls):
         if cls._instance is not None:
             return cls._instance
+
         if cls._failed:
-            raise RuntimeError("Generator model previously failed")
+            raise RuntimeError("Generator previously failed to load")
 
         try:
-            model_uri = f"models:/{MODEL_NAME}/{MODEL_STAGE}"
+            # 🔥 NEW REGISTRY: alias-based loading
+            model_uri = f"models:/{MODEL_NAME}@production"
+            logger.info(f"Loading generator model from {model_uri}")
 
             loaded = mlflow.transformers.load_model(model_uri)
 
             model = loaded.model
             tokenizer = loaded.tokenizer
 
+            pipe = pipeline(
+                "text-generation",
+                model=model,
+                tokenizer=tokenizer,
+                truncation=True,
+            )
+
             cls._instance = {
                 "model": model,
                 "tokenizer": tokenizer,
-                "pipeline": pipeline(
-                    "text-generation",
-                    model=model,
-                    tokenizer=tokenizer,
-                    truncation=True,
-                ),
+                "pipeline": pipe,
             }
+
+            logger.info("Generator model loaded successfully")
             return cls._instance
 
         except Exception as e:
@@ -81,14 +94,6 @@ class GeneratorModel:
             logger.error(f"Generator failed to initialize: {e}")
             raise
 
-    @classmethod
-    def preload(cls):
-        """Force model loading at startup"""
-        logger.info("Preloading generator model...")
-        cls.get_models()
-        logger.info("Generator model loaded")
-
-    # ✅ PUBLIC API (no protected access)
     @classmethod
     def is_ready(cls) -> bool:
         return cls._instance is not None and not cls._failed

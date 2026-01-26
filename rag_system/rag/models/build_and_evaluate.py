@@ -1,65 +1,67 @@
 import mlflow
-import yaml
-from datetime import datetime
-from .compute_metrics import compute_metrics
-from mlflow.tracking import MlflowClient
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import mlflow.transformers
-from mlflow.models import Model
+import yaml
 import logging
-from pathlib import Path
 import os
+from datetime import datetime
+from pathlib import Path
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from mlflow.tracking import MlflowClient
 
-import mlflow.pyfunc
+from .compute_metrics import compute_metrics
 
-# ---- Config ----
-# ConfigMap-mounted path
-CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
+# ---------------- Config ----------------
+CONFIG_PATH = os.getenv(
+    "MODEL_CONFIG_PATH",
+    "/app/configmap/model_config.yaml"
+)
 
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
-
-#PVC_MODEL_PATH = os.path.join("C:", "kind-data", "actions-runner", "actions-runner","_work", "RAG","RAG","rag_system","tests","ci_models","generation")
-
-
-PVC_MODEL_PATH = Path(
-    "C:/kind-data/actions-runner/actions-runner/_work/"
-    "RAG/RAG/rag_system/tests/ci_models/generation"
-).resolve()
-
-PVC_MODEL_URI = PVC_MODEL_PATH.as_uri()
 
 MLFLOW_URI = config["mlflow_uri"]
 MODEL_NAME = config["generation_model"]["label"]
 HF_MODEL_ID = config["generation_model"]["hf_id"]
 THRESHOLDS = config["thresholds"]
 
-tokenizer = AutoTokenizer.from_pretrained(PVC_MODEL_PATH)
-model = AutoModelForCausalLM.from_pretrained(PVC_MODEL_PATH)
+# Local HF model path (CI / PVC / workspace)
+LOCAL_MODEL_PATH = Path(
+    os.getenv(
+        "GENERATION_MODEL_PATH",
+        "rag_system/tests/ci_models/generation"
+    )
+).resolve()
 
+# ---------------- Logging ----------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# ---- Setup MLflow ----
+# ---------------- Load HF model ----------------
+logger.info(f"Loading HF model from {LOCAL_MODEL_PATH}")
+
+tokenizer = AutoTokenizer.from_pretrained(LOCAL_MODEL_PATH)
+model = AutoModelForCausalLM.from_pretrained(LOCAL_MODEL_PATH)
+
+# ---------------- MLflow ----------------
 mlflow.set_tracking_uri(MLFLOW_URI)
 mlflow.set_experiment(MODEL_NAME)
 client = MlflowClient()
 
-# ---- Compute metrics ----
+# ---------------- Evaluate ----------------
 metrics = compute_metrics()
-logging.info(f"Computed metrics: {metrics}")
+logger.info(f"Computed metrics: {metrics}")
 
-# ---- Check thresholds safely ----
-pass_metrics = all(metrics.get(k, 0) >= THRESHOLDS[k] for k in THRESHOLDS)
+pass_metrics = all(
+    metrics.get(k, 0) >= THRESHOLDS[k] for k in THRESHOLDS
+)
 
-# ---- Start MLflow run ----
-run_name = f"eval-{HF_MODEL_ID}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+# ---------------- Log + Register ----------------
+run_name = f"eval-{HF_MODEL_ID}-{datetime.utcnow():%Y%m%d%H%M%S}"
+
 with mlflow.start_run(run_name=run_name) as run:
-    run_id = run.info.run_id
-    version = datetime.now().strftime("v%Y%m%d%H%M%S")
-
     mlflow.log_params({
-        "candidate_version": version,
         "hf_model_id": HF_MODEL_ID,
-        "passed_thresholds": pass_metrics
+        "passed_thresholds": pass_metrics,
     })
 
     for k, v in metrics.items():
@@ -67,52 +69,45 @@ with mlflow.start_run(run_name=run_name) as run:
 
     mlflow.log_artifact(CONFIG_PATH)
 
-    m = Model.load(f"models:/{MODEL_NAME}/Staging")
-    if "transformers" not in m.flavors:
-        raise RuntimeError(
-            f"Staging model for {MODEL_NAME} is NOT a transformers model. "
-            f"Flavors found: {m.flavors}"
-        )
-
-    if pass_metrics:
-        try:
-            # ---- Log and register HF model directly ----
-            result = mlflow.transformers.log_model(
-                transformers_model=model,
-                tokenizer=tokenizer,
-                artifact_path="model",  # keep inside "model" folder for clarity
-                registered_model_name=MODEL_NAME
-            )
-            latest_version = result.version
-
-            # ---- Promote to Staging ----
-            client.transition_model_version_stage(
-                name=MODEL_NAME,
-                version=latest_version,
-                stage="Staging",
-                archive_existing_versions=True,  # 🔥 important
-            )
-
-            # ---- Set run tags ----
-            mlflow.set_tag("promotion_candidate", "true")
-
-            # ---- Set model version tags ----
-            client.set_model_version_tag(
-                name=MODEL_NAME,
-                version=latest_version,
-                key="hf_model_id",
-                value=HF_MODEL_ID
-            )
-            client.set_model_version_tag(
-                name=MODEL_NAME,
-                version=latest_version,
-                key="model_type",
-                value="huggingface"
-            )
-
-            logging.info(f"Model registered as STAGING (v{latest_version})")
-        except Exception as e:
-            logging.error(f"MLflow registration failed: {e}")
-    else:
+    if not pass_metrics:
         mlflow.set_tag("promotion_candidate", "false")
-        logging.warning("Model failed thresholds — not registered")
+        logger.warning("Model failed thresholds — not registered")
+        exit(0)
+
+    logger.info("Logging model to MLflow (transformers flavor)")
+
+    result = mlflow.transformers.log_model(
+        transformers_model=model,
+        tokenizer=tokenizer,
+        artifact_path="model",
+        registered_model_name=MODEL_NAME,
+    )
+
+    version = result.version
+
+    # 🔥 NEW REGISTRY: use aliases
+    client.set_registered_model_alias(
+        name=MODEL_NAME,
+        alias="staging",
+        version=version,
+    )
+
+    client.set_model_version_tag(
+        name=MODEL_NAME,
+        version=version,
+        key="hf_model_id",
+        value=HF_MODEL_ID,
+    )
+
+    client.set_model_version_tag(
+        name=MODEL_NAME,
+        version=version,
+        key="framework",
+        value="transformers",
+    )
+
+    mlflow.set_tag("promotion_candidate", "true")
+
+    logger.info(
+        f"Model registered as {MODEL_NAME} v{version} with alias @staging"
+    )
