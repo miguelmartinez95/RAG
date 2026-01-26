@@ -54,26 +54,27 @@ with mlflow.start_run(run_name=run_name) as run:
 
     if pass_metrics:
         try:
-            # Log HF model as pyfunc or via HF log_model
-            mlflow.pyfunc.log_model(
-                artifact_path="model",
-                python_model=None,
-                registered_model_name=MODEL_NAME,
-                code_path=[str(PVC_MODEL_PATH)]
+            mlflow.log_artifacts(
+                PVC_MODEL_PATH,
+                artifact_path="model"
             )
-            # Safely transition to Staging
-            latest_versions = client.get_latest_versions(MODEL_NAME, stages=["None"])
-            if latest_versions:
-                model_version = latest_versions[0].version
-                client.transition_model_version_stage(
-                    name=MODEL_NAME,
-                    version=model_version,
-                    stage="Staging"
-                )
-                mlflow.set_tag("promotion_candidate", "true")
-                logging.info(f"Model registered as STAGING (v{model_version})")
-            else:
-                logging.warning("No versions found to transition to Staging")
+
+            # 2️⃣ Register model
+            result = mlflow.register_model(
+                model_uri=f"runs:/{run_id}/model",
+                name=MODEL_NAME
+            )
+
+            # 3️⃣ Promote to Staging
+            client.transition_model_version_stage(
+                name=MODEL_NAME,
+                version=result.version,
+                stage="Staging"
+            )
+
+            mlflow.set_tag("promotion_candidate", "true")
+            logging.info(f"Model registered as STAGING (v{result.version})")
+
         except Exception as e:
             logging.error(f"MLflow registration failed: {e}")
     else:

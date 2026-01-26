@@ -54,15 +54,14 @@ class GeneratorModel:
 
         try:
             try:
-                latest_prod = client.get_latest_versions(
-                    name=MODEL_NAME, stages=["Production"]
-                )[0]
-                model_uri = f"models:/{MODEL_NAME}/{latest_prod.version}"
+                model_uri = f"models:/{MODEL_NAME}/Production"
                 local_path = mlflow.artifacts.download_artifacts(model_uri)
                 logger.info(f"Loaded model from MLflow: {model_uri}")
             except Exception as e:
                 local_path = BOOTSTRAP_MODEL_PATH
-                logger.info(f"MLflow unavailable, using bootstrap model: {e}")
+                logger.warning(
+                    f"MLflow model unavailable, using bootstrap model at {local_path}: {e}"
+                )
 
             tokenizer = AutoTokenizer.from_pretrained(local_path, local_files_only=True)
             if tokenizer.pad_token is None:
