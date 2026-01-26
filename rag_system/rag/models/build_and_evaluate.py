@@ -67,6 +67,7 @@ with mlflow.start_run(run_name=run_name) as run:
             )
 
             mlflow_model.log(
+                flavor="hf_directory",  # 👈 THIS IS THE MISSING PIECE
                 artifact_path="model",
                 artifacts={"model_dir": PVC_MODEL_PATH}
             )
