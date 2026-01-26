@@ -56,11 +56,11 @@ class GeneratorModel:
             raise RuntimeError("Generator previously failed to load")
 
         try:
-            # 1️⃣ Check if a model exists in MLflow alias 'production'
-            production_versions = client.get_latest_versions(MODEL_NAME, stages=[])
+            # 🔹 Try MLflow alias first
             prod_model_uri = None
-            for v in production_versions:
-                if "production" in [a.lower() for a in v.aliases]:
+            versions = client.get_latest_versions(MODEL_NAME, stages=[])
+            for v in versions:
+                if "production" in [a.lower() for a in getattr(v, "aliases", [])]:
                     prod_model_uri = f"models:/{MODEL_NAME}@production"
                     break
 
@@ -69,15 +69,16 @@ class GeneratorModel:
                 loaded = mlflow.transformers.load_model(prod_model_uri)
                 model = loaded.model
                 tokenizer = loaded.tokenizer
+                temp_dir = None
 
             else:
-                # 2️⃣ Fallback to local bootstrap
+                # 🔹 Fallback to local bootstrap
                 logger.warning(f"No model in MLflow production alias, using bootstrap path: {BOOTSTRAP_MODEL_PATH}")
                 bootstrap_path = Path(BOOTSTRAP_MODEL_PATH)
                 if not bootstrap_path.exists():
                     raise FileNotFoundError(f"Bootstrap path does not exist: {bootstrap_path}")
 
-                # 3️⃣ Copy to temporary folder (avoid Windows HF repo issues)
+                # Copy to temp folder to avoid HF Windows issues
                 temp_dir = tempfile.TemporaryDirectory()
                 tmp_model_path = Path(temp_dir.name) / "model"
                 shutil.copytree(bootstrap_path, tmp_model_path)
@@ -87,13 +88,15 @@ class GeneratorModel:
                     tokenizer.pad_token = tokenizer.eos_token
 
                 model = AutoModelForCausalLM.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
+
+            # Always create a pipeline
             pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, truncation=True)
 
             cls._instance = {
                 "model": model,
                 "tokenizer": tokenizer,
                 "pipeline": pipe,
-                "_temp_dir": temp_dir if not prod_model_uri else None,  # keep temp dir alive if used
+                "_temp_dir": temp_dir,  # keep temp dir alive if used
             }
 
             logger.info("Generator model loaded successfully")
