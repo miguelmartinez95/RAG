@@ -66,12 +66,12 @@ class GeneratorModel:
                     f"MLflow model unavailable, using bootstrap model at {local_path}: {e}"
                 )
 
-            # 2️⃣ Check for 'model' subfolder, fallback to root
-            model_path_candidate = Path(local_path) / "model"
-            if model_path_candidate.exists():
-                model_path = model_path_candidate
-            else:
-                model_path = Path(local_path)
+            model_path = Path(local_path) / "model"
+
+            if not (model_path / "config.json").exists():
+                raise RuntimeError(
+                    f"Invalid HF model directory. config.json not found in {model_path}"
+                )
             logger.info(f"Using model path: {model_path}")
 
             # 3️⃣ Copy to a temporary folder to avoid HF repo validation issues (Windows)

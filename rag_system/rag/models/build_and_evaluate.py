@@ -12,13 +12,6 @@ import os
 
 import mlflow.pyfunc
 
-class HFDirectoryModel(mlflow.pyfunc.PythonModel):
-    def load_context(self, context):
-        self.model_dir = context.artifacts["model_dir"]
-
-    def predict(self, context, model_input):
-        raise NotImplementedError("Inference not implemented yet")
-
 # ---- Config ----
 # ConfigMap-mounted path
 CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
@@ -80,7 +73,7 @@ with mlflow.start_run(run_name=run_name) as run:
             result = mlflow.transformers.log_model(
                 transformers_model=model,
                 tokenizer=tokenizer,
-                artifact_path="",  # <--- flatten
+                artifact_path="model",  # keep inside "model" folder for clarity
                 registered_model_name=MODEL_NAME
             )
             latest_version = result.version
