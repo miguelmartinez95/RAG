@@ -3,6 +3,8 @@ import yaml
 from datetime import datetime
 from .compute_metrics import compute_metrics
 from mlflow.tracking import MlflowClient
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import mlflow.transformers
 from mlflow.models import Model
 import logging
 from pathlib import Path
@@ -39,11 +41,13 @@ MODEL_NAME = config["generation_model"]["label"]
 HF_MODEL_ID = config["generation_model"]["hf_id"]
 THRESHOLDS = config["thresholds"]
 
+tokenizer = AutoTokenizer.from_pretrained(PVC_MODEL_PATH)
+model = AutoModelForCausalLM.from_pretrained(PVC_MODEL_PATH)
+
 
 # ---- Setup MLflow ----
 mlflow.set_tracking_uri(MLFLOW_URI)
 mlflow.set_experiment(MODEL_NAME)
-client = MlflowClient()
 
 # ---- Compute metrics ----
 metrics = compute_metrics()
@@ -71,43 +75,41 @@ with mlflow.start_run(run_name=run_name) as run:
 
     if pass_metrics:
         try:
-            mlflow.pyfunc.log_model(
+            # Log and register the HF model
+            result = mlflow.transformers.log_model(
+                transformers_model=model,
+                tokenizer=tokenizer,
                 artifact_path="model",
-                python_model=HFDirectoryModel(),
-                artifacts={"model_dir": PVC_MODEL_URI},
-                metadata={
-                    "hf_model_id": HF_MODEL_ID,
-                    "framework": "transformers"
-                }
+                registered_model_name=MODEL_NAME
             )
+            latest_version = result.version
 
-            # 2️⃣ Register model
-            result = mlflow.register_model(
-                model_uri=f"runs:/{run_id}/model",
-                name=MODEL_NAME
-            )
-
-            # 3️⃣ Promote to Staging
+            # Promote to Staging
+            client = MlflowClient()
             client.transition_model_version_stage(
                 name=MODEL_NAME,
-                version=result.version,
+                version=latest_version,
                 stage="Staging"
             )
 
+            # Run tags
             mlflow.set_tag("promotion_candidate", "true")
-            logging.info(f"Model registered as STAGING (v{result.version})")
+
+            # Model version tags
             client.set_model_version_tag(
                 name=MODEL_NAME,
-                version=version,
+                version=latest_version,
                 key="hf_model_id",
                 value=HF_MODEL_ID
             )
             client.set_model_version_tag(
                 name=MODEL_NAME,
-                version=version,
+                version=latest_version,
                 key="model_type",
                 value="huggingface"
             )
+
+            logging.info(f"Model registered as STAGING (v{latest_version})")
 
         except Exception as e:
             logging.error(f"MLflow registration failed: {e}")
