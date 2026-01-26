@@ -97,5 +97,4 @@ def compute_metrics():
         "min_eval_score": min(eval_scores),
         "eval_score_std": statistics.stdev(eval_scores),
         "answer_groundedness": np.mean(groundedness_scores),
-        "avg_latency_ms": np.mean(latencies),
     }
