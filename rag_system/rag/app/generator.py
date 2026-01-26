@@ -66,7 +66,8 @@ class GeneratorModel:
                     f"MLflow model unavailable, using bootstrap model at {model_path}: {e}"
                 )
 
-            model_path = str(Path(model_path).resolve())
+            model_path = Path(model_path).resolve()
+            model_path = model_path.as_posix()
             tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True, trust_remote_code=False)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
