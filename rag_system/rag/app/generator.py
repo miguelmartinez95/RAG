@@ -6,6 +6,7 @@ import yaml
 import os
 import logging
 import sys
+from pathlib import Path
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(
@@ -65,10 +66,11 @@ class GeneratorModel:
                     f"MLflow model unavailable, using bootstrap model at {model_path}: {e}"
                 )
 
-            tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+            model_path = str(Path(model_path).resolve())
+            tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True, trust_remote_code=False)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
-            model = AutoModelForCausalLM.from_pretrained(model_path, local_files_only=True, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(model_path, local_files_only=True, trust_remote_code=False)
 
             if tokenizer.vocab_size != model.config.vocab_size:
                 raise RuntimeError(
