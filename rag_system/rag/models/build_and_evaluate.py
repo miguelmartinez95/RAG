@@ -55,21 +55,10 @@ with mlflow.start_run(run_name=run_name) as run:
 
     if pass_metrics:
         try:
-
-            mlflow_model = Model(
-                artifact_path="model",
-                flavors={
-                    "hf_directory": {
-                        "hf_id": HF_MODEL_ID,
-                        "framework": "transformers"
-                    }
-                }
-            )
-
-            mlflow_model.log(
-                flavor="hf_directory",  # 👈 THIS IS THE MISSING PIECE
-                artifact_path="model",
-                artifacts={"model_dir": PVC_MODEL_PATH}
+            # 1️⃣ Log the HuggingFace model directory as artifacts
+            mlflow.log_artifacts(
+                PVC_MODEL_PATH,
+                artifact_path="model"
             )
 
             # 2️⃣ Register model
@@ -87,6 +76,8 @@ with mlflow.start_run(run_name=run_name) as run:
 
             mlflow.set_tag("promotion_candidate", "true")
             logging.info(f"Model registered as STAGING (v{result.version})")
+            mlflow.set_tag("hf_model_id", HF_MODEL_ID)
+            mlflow.set_tag("model_type", "huggingface")
 
         except Exception as e:
             logging.error(f"MLflow registration failed: {e}")
