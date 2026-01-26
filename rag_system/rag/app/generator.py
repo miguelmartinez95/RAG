@@ -104,7 +104,6 @@ def generate_answer(state):
 
     model_obj = GeneratorModel.get_models()
     pipe = model_obj["pipeline"]
-    tokenizer = model_obj["tokenizer"]
 
     query = state.query
     #context = state.context
@@ -132,14 +131,13 @@ def generate_answer(state):
 
     # Use HF pipeline for automatic decoding, batching, device placement
     outputs = pipe(
-    prompt,
-    max_new_tokens=100,      # reduce further
-    do_sample=True,
-    temperature=0.2,
-    top_p=0.7,
-    repetition_penalty=1.1,
-    pad_token_id=tokenizer.eos_token_id,
-    return_full_text=False,
+        prompt,
+        max_new_tokens=100,
+        do_sample=True,
+        temperature=0.2,
+        top_p=0.7,
+        repetition_penalty=1.1,
+        return_full_text=False,
     )
 
     state.answer = str(outputs[0].get("generated_text", "")).strip()
