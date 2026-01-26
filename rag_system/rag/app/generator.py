@@ -7,6 +7,8 @@ import os
 import logging
 import sys
 from pathlib import Path
+import shutil
+import tempfile
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(
@@ -57,21 +59,28 @@ class GeneratorModel:
             try:
                 model_uri = f"models:/{MODEL_NAME}/Production"
                 local_path = mlflow.artifacts.download_artifacts(model_uri)
-                model_path = os.path.join(local_path, "model")
-                logger.info(f"Loaded model from MLflow: {model_path}")
+                logger.info(f"Loaded model from MLflow: {local_path}")
             except Exception as e:
                 local_path = BOOTSTRAP_MODEL_PATH
-                model_path = os.path.join(local_path, "model")
                 logger.warning(
                     f"MLflow model unavailable, using bootstrap model at {model_path}: {e}"
                 )
 
-            model_path = Path(model_path).resolve()
-            model_path = model_path.as_posix()
-            tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True, trust_remote_code=False)
+            model_path = Path(local_path) / "model"
+            if not model_path.exists():
+                raise FileNotFoundError(f"Model folder not found at {model_path}")
+
+            # 3️⃣ Copy to a temporary folder to avoid HF repo validation issues (Windows)
+            temp_dir = tempfile.TemporaryDirectory()
+            tmp_model_path = Path(temp_dir.name) / "model"
+            shutil.copytree(model_path, tmp_model_path)
+
+            # 4️⃣ Load tokenizer & model
+            tokenizer = AutoTokenizer.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
-            model = AutoModelForCausalLM.from_pretrained(model_path, local_files_only=True, trust_remote_code=False)
+
+            model = AutoModelForCausalLM.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
 
             if tokenizer.vocab_size != model.config.vocab_size:
                 raise RuntimeError(
@@ -87,7 +96,8 @@ class GeneratorModel:
                     model=model,
                     tokenizer=tokenizer,
                     truncation=True
-                )
+                ),
+                "_temp_dir": temp_dir  # keep temp dir alive for HF
             }
             return cls._instance
 
