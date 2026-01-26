@@ -53,10 +53,16 @@ with mlflow.start_run(run_name=run_name) as run:
 
     # ✅ Log HF pipeline to MLflow
     result = mlflow.transformers.log_model(
-        transformers_model=gen_pipe,  # pipeline, avoids torchvision inspection
-        name="model",                 # use 'name' instead of deprecated artifact_path
-        registered_model_name=MODEL_NAME
-    )
+    transformers_model=gen_pipe,
+    name="model",
+    registered_model_name=MODEL_NAME,
+    pip_requirements=[
+        "torch>=2.0.0",
+        "transformers>=4.30.0",
+        "mlflow>=2.6.0",
+        "PyYAML>=6.0"
+    ]
+)
 
     version = result.version
 
