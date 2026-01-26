@@ -3,6 +3,7 @@ import yaml
 from datetime import datetime
 from .compute_metrics import compute_metrics
 from mlflow.tracking import MlflowClient
+from mlflow.models import Model
 import logging
 import os
 
@@ -54,9 +55,20 @@ with mlflow.start_run(run_name=run_name) as run:
 
     if pass_metrics:
         try:
-            mlflow.log_artifacts(
-                PVC_MODEL_PATH,
-                artifact_path="model"
+
+            mlflow_model = Model(
+                artifact_path="model",
+                flavors={
+                    "hf_directory": {
+                        "hf_id": HF_MODEL_ID,
+                        "framework": "transformers"
+                    }
+                }
+            )
+
+            mlflow_model.log(
+                artifact_path="model",
+                artifacts={"model_dir": PVC_MODEL_PATH}
             )
 
             # 2️⃣ Register model
