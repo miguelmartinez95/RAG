@@ -52,24 +52,26 @@ with mlflow.start_run(run_name=run_name) as run:
         exit(0)
 
     # ✅ Log HF pipeline to MLflow
-    result = mlflow.transformers.log_model(
-    transformers_model=gen_pipe,
-    name="model",
-    registered_model_name=MODEL_NAME,
-    pip_requirements=[
-        "torch>=2.0.0",
-        "transformers>=4.30.0",
-        "mlflow>=2.6.0",
-        "PyYAML>=6.0"
-    ]
-)
+    mlflow.transformers.log_model(
+        transformers_model=gen_pipe,
+        artifact_path="model",
+        registered_model_name=MODEL_NAME,
+        pip_requirements=[
+            "torch>=2.0.0",
+            "transformers>=4.30.0",
+            "mlflow>=2.6.0",
+            "PyYAML>=6.0"
+        ]
+    )
 
-    version = result.version
+    # Get the latest version from the MLflow client
+    latest_version = client.get_latest_versions(MODEL_NAME, stages=[])[-1].version
+    logger.info(f"Registered model version: {latest_version}")
 
     # 🔹 Set registry alias for promotion
-    client.set_registered_model_alias(name=MODEL_NAME, alias="staging", version=version)
-    client.set_model_version_tag(name=MODEL_NAME, version=version, key="hf_model_id", value=HF_MODEL_ID)
-    client.set_model_version_tag(name=MODEL_NAME, version=version, key="framework", value="transformers")
+    client.set_registered_model_alias(name=MODEL_NAME, alias="staging", version=latest_version)
+    client.set_model_version_tag(name=MODEL_NAME, version=latest_version, key="hf_model_id", value=HF_MODEL_ID)
+    client.set_model_version_tag(name=MODEL_NAME, version=latest_version, key="framework", value="transformers")
     mlflow.set_tag("promotion_candidate", "true")
 
-    logger.info(f"Model registered as {MODEL_NAME} v{version} with alias @staging")
+    logger.info(f"Model registered as {MODEL_NAME} v{latest_version} with alias @staging")
