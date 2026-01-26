@@ -124,13 +124,11 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Configure kubeconfig
+      - name: Set KUBECONFIG
         shell: cmd
         run: |
-          kubectl config set-cluster rag-cluster --server=%KUBE_API_SERVER% --insecure-skip-tls-verify=true
-          kubectl config set-credentials github-actions --token=%KUBE_TOKEN%
-          kubectl config set-context default --cluster=rag-cluster --user=github-actions
-          kubectl config use-context default
+          set KUBECONFIG=C:\Users\migue\.kube\config
+          kubectl get nodes
 
       - name: Generate ConfigMap
         shell: cmd

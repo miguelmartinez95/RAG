@@ -96,8 +96,18 @@ with mlflow.start_run(run_name=run_name) as run:
 
             mlflow.set_tag("promotion_candidate", "true")
             logging.info(f"Model registered as STAGING (v{result.version})")
-            mlflow.set_tag("hf_model_id", HF_MODEL_ID)
-            mlflow.set_tag("model_type", "huggingface")
+            client.set_model_version_tag(
+                name=MODEL_NAME,
+                version=version,
+                key="hf_model_id",
+                value=HF_MODEL_ID
+            )
+            client.set_model_version_tag(
+                name=MODEL_NAME,
+                version=version,
+                key="model_type",
+                value="huggingface"
+            )
 
         except Exception as e:
             logging.error(f"MLflow registration failed: {e}")
