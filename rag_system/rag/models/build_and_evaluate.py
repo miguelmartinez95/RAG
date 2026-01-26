@@ -5,6 +5,7 @@ from .compute_metrics import compute_metrics
 from mlflow.tracking import MlflowClient
 from mlflow.models import Model
 import logging
+from pathlib import Path
 import os
 
 import mlflow.pyfunc
@@ -23,9 +24,15 @@ CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
 with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
-PVC_MODEL_PATH = os.path.join("C:", "kind-data", "actions-runner", "actions-runner","_work", "RAG","RAG","rag_system","tests","ci_models","generation")
+#PVC_MODEL_PATH = os.path.join("C:", "kind-data", "actions-runner", "actions-runner","_work", "RAG","RAG","rag_system","tests","ci_models","generation")
 
-#PVC_MODEL_PATH = "C:\kind-data\actions-runner\actions-runner\_work\RAG\RAG\rag_system\tests\ci_models\generation"  # where the generation model is stored in PVC
+
+PVC_MODEL_PATH = Path(
+    "C:/kind-data/actions-runner/actions-runner/_work/"
+    "RAG/RAG/rag_system/tests/ci_models/generation"
+).resolve()
+
+PVC_MODEL_URI = PVC_MODEL_PATH.as_uri()
 
 MLFLOW_URI = config["mlflow_uri"]
 MODEL_NAME = config["generation_model"]["label"]
@@ -67,7 +74,7 @@ with mlflow.start_run(run_name=run_name) as run:
             mlflow.pyfunc.log_model(
                 artifact_path="model",
                 python_model=HFDirectoryModel(),
-                artifacts={"model_dir": PVC_MODEL_PATH},
+                artifacts={"model_dir": PVC_MODEL_URI},
                 metadata={
                     "hf_model_id": HF_MODEL_ID,
                     "framework": "transformers"
