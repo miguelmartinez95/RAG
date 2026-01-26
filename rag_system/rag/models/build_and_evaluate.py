@@ -67,6 +67,13 @@ with mlflow.start_run(run_name=run_name) as run:
 
     mlflow.log_artifact(CONFIG_PATH)
 
+    m = Model.load(f"models:/{MODEL_NAME}/Staging")
+    if "transformers" not in m.flavors:
+        raise RuntimeError(
+            f"Staging model for {MODEL_NAME} is NOT a transformers model. "
+            f"Flavors found: {m.flavors}"
+        )
+
     if pass_metrics:
         try:
             # ---- Log and register HF model directly ----
@@ -82,7 +89,8 @@ with mlflow.start_run(run_name=run_name) as run:
             client.transition_model_version_stage(
                 name=MODEL_NAME,
                 version=latest_version,
-                stage="Staging"
+                stage="Staging",
+                archive_existing_versions=True,  # 🔥 important
             )
 
             # ---- Set run tags ----

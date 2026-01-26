@@ -42,6 +42,8 @@ BOOTSTRAP_MODEL_PATH = os.getenv(
 mlflow.set_tracking_uri(MLFLOW_URI)
 client = MlflowClient()
 
+MODEL_STAGE = os.getenv("MODEL_STAGE", "Production")
+
 
 class GeneratorModel:
     _instance = None
@@ -55,7 +57,7 @@ class GeneratorModel:
             raise RuntimeError("Generator model previously failed")
 
         try:
-            model_uri = f"models:/{MODEL_NAME}/Production"
+            model_uri = f"models:/{MODEL_NAME}/{MODEL_STAGE}"
 
             loaded = mlflow.transformers.load_model(model_uri)
 
