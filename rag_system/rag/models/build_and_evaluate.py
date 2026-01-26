@@ -48,6 +48,7 @@ model = AutoModelForCausalLM.from_pretrained(PVC_MODEL_PATH)
 # ---- Setup MLflow ----
 mlflow.set_tracking_uri(MLFLOW_URI)
 mlflow.set_experiment(MODEL_NAME)
+client = MlflowClient()
 
 # ---- Compute metrics ----
 metrics = compute_metrics()
@@ -75,27 +76,27 @@ with mlflow.start_run(run_name=run_name) as run:
 
     if pass_metrics:
         try:
-            # Log and register the HF model
+            # ---- Log and register HF model directly ----
             result = mlflow.transformers.log_model(
                 transformers_model=model,
                 tokenizer=tokenizer,
                 artifact_path="model",
                 registered_model_name=MODEL_NAME
             )
+
             latest_version = result.version
 
-            # Promote to Staging
-            client = MlflowClient()
+            # ---- Promote to Staging ----
             client.transition_model_version_stage(
                 name=MODEL_NAME,
                 version=latest_version,
                 stage="Staging"
             )
 
-            # Run tags
+            # ---- Set run tags ----
             mlflow.set_tag("promotion_candidate", "true")
 
-            # Model version tags
+            # ---- Set model version tags ----
             client.set_model_version_tag(
                 name=MODEL_NAME,
                 version=latest_version,
@@ -110,7 +111,6 @@ with mlflow.start_run(run_name=run_name) as run:
             )
 
             logging.info(f"Model registered as STAGING (v{latest_version})")
-
         except Exception as e:
             logging.error(f"MLflow registration failed: {e}")
     else:
