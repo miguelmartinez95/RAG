@@ -51,61 +51,16 @@ class GeneratorModel:
     def get_models(cls):
         if cls._instance is not None:
             return cls._instance
-
         if cls._failed:
-            raise RuntimeError("Generator model previously failed to load")
+            raise RuntimeError("Generator model previously failed")
 
         try:
-            try:
-                model_uri = f"models:/{MODEL_NAME}/Production"
-                local_path = mlflow.artifacts.download_artifacts(model_uri)
-                logger.info(f"Loaded model from MLflow: {local_path}")
-            except Exception as e:
-                local_path = BOOTSTRAP_MODEL_PATH
-                logger.warning(
-                    f"MLflow model unavailable, using bootstrap model at {local_path}: {e}"
-                )
+            model_uri = f"models:/{MODEL_NAME}/Production"
 
-            local_path = Path(
-                mlflow.artifacts.download_artifacts(model_uri)
-            )
+            loaded = mlflow.transformers.load_model(model_uri)
 
-            # MLflow Transformers flavor puts HF files under model/data
-            candidates = [
-                local_path / "model" / "data",
-                local_path / "model",  # fallback (older MLflow)
-            ]
-
-            model_path = None
-            for c in candidates:
-                if (c / "config.json").exists():
-                    model_path = c
-                    break
-
-            if model_path is None:
-                raise RuntimeError(
-                    f"HF model not found. Checked: {candidates}"
-                )
-
-            logger.info(f"Resolved HF model path: {model_path}")
-
-            # 3️⃣ Copy to a temporary folder to avoid HF repo validation issues (Windows)
-            temp_dir = tempfile.TemporaryDirectory()
-            tmp_model_path = Path(temp_dir.name) / "model"
-            shutil.copytree(model_path, tmp_model_path)
-
-            # 4️⃣ Load tokenizer & model
-            tokenizer = AutoTokenizer.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
-            if tokenizer.pad_token is None:
-                tokenizer.pad_token = tokenizer.eos_token
-
-            model = AutoModelForCausalLM.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
-
-            if tokenizer.vocab_size != model.config.vocab_size:
-                raise RuntimeError(
-                    f"Tokenizer/model vocab mismatch: "
-                    f"{tokenizer.vocab_size} vs {model.config.vocab_size}"
-                )
+            model = loaded.model
+            tokenizer = loaded.tokenizer
 
             cls._instance = {
                 "model": model,
@@ -114,15 +69,14 @@ class GeneratorModel:
                     "text-generation",
                     model=model,
                     tokenizer=tokenizer,
-                    truncation=True
+                    truncation=True,
                 ),
-                "_temp_dir": temp_dir  # keep temp dir alive for HF
             }
             return cls._instance
 
         except Exception as e:
             cls._failed = True
-            logger.info(f"Generator failed to initialize: {e}")
+            logger.error(f"Generator failed to initialize: {e}")
             raise
 
     @classmethod
