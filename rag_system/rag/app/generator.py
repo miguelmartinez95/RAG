@@ -56,17 +56,19 @@ class GeneratorModel:
             try:
                 model_uri = f"models:/{MODEL_NAME}/Production"
                 local_path = mlflow.artifacts.download_artifacts(model_uri)
-                logger.info(f"Loaded model from MLflow: {model_uri}")
+                model_path = os.path.join(local_path, "model")
+                logger.info(f"Loaded model from MLflow: {model_path}")
             except Exception as e:
                 local_path = BOOTSTRAP_MODEL_PATH
+                model_path = os.path.join(local_path, "model")
                 logger.warning(
-                    f"MLflow model unavailable, using bootstrap model at {local_path}: {e}"
+                    f"MLflow model unavailable, using bootstrap model at {model_path}: {e}"
                 )
 
-            tokenizer = AutoTokenizer.from_pretrained(local_path, local_files_only=True)
+            tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
-            model = AutoModelForCausalLM.from_pretrained(local_path, local_files_only=True, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(model_path, local_files_only=True, trust_remote_code=True)
 
             if tokenizer.vocab_size != model.config.vocab_size:
                 raise RuntimeError(
