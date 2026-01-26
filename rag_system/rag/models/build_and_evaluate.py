@@ -7,6 +7,15 @@ from mlflow.models import Model
 import logging
 import os
 
+import mlflow.pyfunc
+
+class HFDirectoryModel(mlflow.pyfunc.PythonModel):
+    def load_context(self, context):
+        self.model_dir = context.artifacts["model_dir"]
+
+    def predict(self, context, model_input):
+        raise NotImplementedError("Inference not implemented yet")
+
 # ---- Config ----
 # ConfigMap-mounted path
 CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
@@ -55,10 +64,14 @@ with mlflow.start_run(run_name=run_name) as run:
 
     if pass_metrics:
         try:
-            # 1️⃣ Log the HuggingFace model directory as artifacts
-            mlflow.log_artifacts(
-                PVC_MODEL_PATH,
-                artifact_path="model"
+            mlflow.pyfunc.log_model(
+                artifact_path="model",
+                python_model=HFDirectoryModel(),
+                artifacts={"model_dir": PVC_MODEL_PATH},
+                metadata={
+                    "hf_model_id": HF_MODEL_ID,
+                    "framework": "transformers"
+                }
             )
 
             # 2️⃣ Register model
