@@ -66,13 +66,28 @@ class GeneratorModel:
                     f"MLflow model unavailable, using bootstrap model at {local_path}: {e}"
                 )
 
-            model_path = Path(local_path) / "model"
+            local_path = Path(
+                mlflow.artifacts.download_artifacts(model_uri)
+            )
 
-            if not (model_path / "config.json").exists():
+            # MLflow Transformers flavor puts HF files under model/data
+            candidates = [
+                local_path / "model" / "data",
+                local_path / "model",  # fallback (older MLflow)
+            ]
+
+            model_path = None
+            for c in candidates:
+                if (c / "config.json").exists():
+                    model_path = c
+                    break
+
+            if model_path is None:
                 raise RuntimeError(
-                    f"Invalid HF model directory. config.json not found in {model_path}"
+                    f"HF model not found. Checked: {candidates}"
                 )
-            logger.info(f"Using model path: {model_path}")
+
+            logger.info(f"Resolved HF model path: {model_path}")
 
             # 3️⃣ Copy to a temporary folder to avoid HF repo validation issues (Windows)
             temp_dir = tempfile.TemporaryDirectory()
