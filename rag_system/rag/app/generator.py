@@ -63,12 +63,16 @@ class GeneratorModel:
             except Exception as e:
                 local_path = BOOTSTRAP_MODEL_PATH
                 logger.warning(
-                    f"MLflow model unavailable, using bootstrap model at {model_path}: {e}"
+                    f"MLflow model unavailable, using bootstrap model at {local_path}: {e}"
                 )
 
-            model_path = Path(local_path) / "model"
-            if not model_path.exists():
-                raise FileNotFoundError(f"Model folder not found at {model_path}")
+            # 2️⃣ Check for 'model' subfolder, fallback to root
+            model_path_candidate = Path(local_path) / "model"
+            if model_path_candidate.exists():
+                model_path = model_path_candidate
+            else:
+                model_path = Path(local_path)
+            logger.info(f"Using model path: {model_path}")
 
             # 3️⃣ Copy to a temporary folder to avoid HF repo validation issues (Windows)
             temp_dir = tempfile.TemporaryDirectory()
