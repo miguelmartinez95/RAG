@@ -80,10 +80,9 @@ with mlflow.start_run(run_name=run_name) as run:
             result = mlflow.transformers.log_model(
                 transformers_model=model,
                 tokenizer=tokenizer,
-                artifact_path="model",
+                artifact_path="",  # <--- flatten
                 registered_model_name=MODEL_NAME
             )
-
             latest_version = result.version
 
             # ---- Promote to Staging ----
