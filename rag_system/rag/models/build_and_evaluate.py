@@ -54,13 +54,18 @@ with mlflow.start_run(run_name=run_name) as run:
         exit(0)
 
     # ✅ Create a pipeline for logging
-    gen_pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, truncation=True)
+    gen_pipe = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        device=-1  # CPU; use device=0 for GPU
+    )
 
     logger.info("Logging model to MLflow (transformers flavor)")
     result = mlflow.transformers.log_model(
         transformers_model=gen_pipe,  # 🔹 pipeline, not raw model
         artifact_path="model",
-        registered_model_name=MODEL_NAME,
+        registered_model_name=MODEL_NAME
     )
 
     version = result.version

@@ -57,48 +57,35 @@ class GeneratorModel:
 
         try:
             # 🔹 Try MLflow alias first
-            prod_model_uri = None
-            versions = client.get_latest_versions(MODEL_NAME, stages=[])
-            for v in versions:
-                if "production" in [a.lower() for a in getattr(v, "aliases", [])]:
-                    prod_model_uri = f"models:/{MODEL_NAME}@production"
-                    break
+            prod_model_uri = f"models:/{MODEL_NAME}@production"
+            loaded_pipeline = None
+            try:
+                logger.info(f"Trying to load model from MLflow: {prod_model_uri}")
+                loaded_pipeline = mlflow.transformers.load_model(prod_model_uri)
+            except Exception:
+                logger.warning(f"No model in MLflow production alias, using bootstrap: {BOOTSTRAP_MODEL_PATH}")
 
-            if prod_model_uri:
-                logger.info(f"Loading model from MLflow alias 'production': {prod_model_uri}")
-                loaded = mlflow.transformers.load_model(prod_model_uri)
-                model = loaded.model
-                tokenizer = loaded.tokenizer
+            if loaded_pipeline:
+                pipe = loaded_pipeline  # ready-to-use pipeline
                 temp_dir = None
-
             else:
                 # 🔹 Fallback to local bootstrap
-                logger.warning(f"No model in MLflow production alias, using bootstrap path: {BOOTSTRAP_MODEL_PATH}")
                 bootstrap_path = Path(BOOTSTRAP_MODEL_PATH)
                 if not bootstrap_path.exists():
                     raise FileNotFoundError(f"Bootstrap path does not exist: {bootstrap_path}")
 
-                # Copy to temp folder to avoid HF Windows issues
+                # Copy to temp folder (Windows safe)
                 temp_dir = tempfile.TemporaryDirectory()
-                tmp_model_path = Path(temp_dir.name) / "model"
-                shutil.copytree(bootstrap_path, tmp_model_path)
+                tmp_path = Path(temp_dir.name) / "model"
+                shutil.copytree(bootstrap_path, tmp_path)
 
-                tokenizer = AutoTokenizer.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
-                if tokenizer.pad_token is None:
-                    tokenizer.pad_token = tokenizer.eos_token
-
-                model = AutoModelForCausalLM.from_pretrained(tmp_model_path, local_files_only=True, trust_remote_code=False)
-
-            # Always create a pipeline
-            pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, truncation=True)
+                # Build pipeline directly
+                pipe = pipeline("text-generation", model=str(tmp_path), device=-1)  # CPU, set 0 for GPU
 
             cls._instance = {
-                "model": model,
-                "tokenizer": tokenizer,
                 "pipeline": pipe,
-                "_temp_dir": temp_dir,  # keep temp dir alive if used
+                "_temp_dir": temp_dir,
             }
-
             logger.info("Generator model loaded successfully")
             return cls._instance
 
@@ -110,6 +97,7 @@ class GeneratorModel:
     @classmethod
     def is_ready(cls) -> bool:
         return cls._instance is not None and not cls._failed
+
 
 def generate_answer(state):
     state = ensure_rag_state(state)
