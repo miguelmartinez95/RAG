@@ -1,5 +1,5 @@
 import mlflow
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import pipeline
 from mlflow.tracking import MlflowClient
 from .ensure_state import ensure_rag_state
 import yaml
@@ -10,36 +10,25 @@ from pathlib import Path
 import tempfile
 import shutil
 
-
+# ---------------- Logging ----------------
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    )
+    logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 )
-
-# 🔥 Force UTF-8 + safe replacement
 handler.stream.reconfigure(encoding="utf-8", errors="replace")
-
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[handler],
-)
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 logger = logging.getLogger(__name__)
 
-# ConfigMap-mounted path
+# ---------------- Config ----------------
 CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", "/app/configmap/model_config.yaml")
-
-MODEL_STAGE = os.getenv("MODEL_STAGE", "Production")
-
-
-with open(CONFIG_PATH, "r") as f:
+with open(CONFIG_PATH) as f:
     config = yaml.safe_load(f)
-
 
 MLFLOW_URI = config["mlflow_uri"]
 MODEL_NAME = config["generation_model"]["label"]
 BOOTSTRAP_MODEL_PATH = os.getenv("GENERATION_MODEL_PATH", "/models/generation_model")
+MODEL_STAGE = os.getenv("MODEL_STAGE", "Production")  # "Production" by default
+
 mlflow.set_tracking_uri(MLFLOW_URI)
 client = MlflowClient()
 
@@ -57,35 +46,34 @@ class GeneratorModel:
 
         try:
             # 🔹 Try MLflow alias first
-            prod_model_uri = f"models:/{MODEL_NAME}@production"
-            loaded_pipeline = None
+            model_uri = f"models:/{MODEL_NAME}@{MODEL_STAGE.lower()}"
+            pipeline_obj = None
             try:
-                logger.info(f"Trying to load model from MLflow: {prod_model_uri}")
-                loaded_pipeline = mlflow.transformers.load_model(prod_model_uri)
-            except Exception:
-                logger.warning(f"No model in MLflow production alias, using bootstrap: {BOOTSTRAP_MODEL_PATH}")
+                logger.info(f"Trying to load pipeline from MLflow: {model_uri}")
+                pipeline_obj = mlflow.transformers.load_model(model_uri)
+            except Exception as e:
+                logger.warning(f"No model in MLflow {MODEL_STAGE} alias, using bootstrap path: {BOOTSTRAP_MODEL_PATH} ({e})")
 
-            if loaded_pipeline:
-                pipe = loaded_pipeline  # ready-to-use pipeline
+            if pipeline_obj:
+                pipe = pipeline_obj  # ready-to-use pipeline
                 temp_dir = None
             else:
-                # 🔹 Fallback to local bootstrap
+                # 🔹 Fallback: bootstrap local model
                 bootstrap_path = Path(BOOTSTRAP_MODEL_PATH)
                 if not bootstrap_path.exists():
                     raise FileNotFoundError(f"Bootstrap path does not exist: {bootstrap_path}")
 
-                # Copy to temp folder (Windows safe)
                 temp_dir = tempfile.TemporaryDirectory()
                 tmp_path = Path(temp_dir.name) / "model"
                 shutil.copytree(bootstrap_path, tmp_path)
 
-                # Build pipeline directly
-                pipe = pipeline("text-generation", model=str(tmp_path), device=-1)  # CPU, set 0 for GPU
+                pipe = pipeline("text-generation", model=str(tmp_path), device=-1)  # CPU; device=0 for GPU
 
             cls._instance = {
                 "pipeline": pipe,
                 "_temp_dir": temp_dir,
             }
+
             logger.info("Generator model loaded successfully")
             return cls._instance
 
@@ -101,35 +89,28 @@ class GeneratorModel:
 
 def generate_answer(state):
     state = ensure_rag_state(state)
+    pipe = GeneratorModel.get_models()["pipeline"]
 
-    model_obj = GeneratorModel.get_models()
-    pipe = model_obj["pipeline"]
-
-    query = state.query
-    #context = state.context
-    MAX_CONTEXT_CHARS = 500  # start small
-
+    MAX_CONTEXT_CHARS = 500
     context = (state.context or "")[:MAX_CONTEXT_CHARS]
-
     if not context.strip():
         state.answer = "I don't know"
         return state
 
     prompt = f"""You are a factual assistant.
-    Answer the question ONLY using the context below.
-    Use ONLY the provided context.
-    Do not add external knowledge.
-    If the answer is not in the context, say "I don't know".
+Answer the question ONLY using the context below.
+Use ONLY the provided context.
+Do not add external knowledge.
+If the answer is not in the context, say "I don't know".
 
-    Context:
-    {context}
+Context:
+{context}
 
-    Question:
-    {query}
+Question:
+{state.query}
 
-    Answer:"""
+Answer:"""
 
-    # Use HF pipeline for automatic decoding, batching, device placement
     outputs = pipe(
         prompt,
         max_new_tokens=100,
@@ -140,9 +121,6 @@ def generate_answer(state):
         return_full_text=False,
     )
 
-    state.answer = str(outputs[0].get("generated_text", "")).strip()
-
+    state.answer = outputs[0].get("generated_text", "").strip()
     logger.info(f"GENERATOR: {state.answer}")
-
-
-    return state  # return the state for LangGraph
+    return state
